@@ -69,6 +69,13 @@ let localdir_opt_t =
   in
   Arg.(value & opt (some (conv_fp dir)) None & info [ "d"; "dir" ] ~doc ~docv)
 
+let version_t =
+  let print () = print_endline "%%VERSION%%" in
+  Term.(const print $ const ())
+
+let version_info =
+  Term.info ~doc:"Prints the version of the DKML plugin" "version"
+
 let init_t =
   Term.ret
   @@ Term.(
@@ -76,38 +83,38 @@ let init_t =
        $ (const Cmd_init.run $ const setup $ localdir_opt_t
         $ Cmd_init.buildtype_t $ yes_t))
 
+let init_info =
+  Term.info
+    ~doc:
+      "Creates or updates an `_opam` subdirectory from zero or more `*.opam` \
+       files in the local directory"
+    ~man:
+      ([
+         `P
+           "The `_opam` directory, also known as the local Opam switch, holds \
+            an OCaml compiler and all of the packages that are specified in \
+            the `*.opam` files.";
+         `P
+           "$(b,--build-type=Release) uses the flamba optimizer described at \
+            https://ocaml.org/manual/flambda.html";
+       ]
+      @
+      if Sys.win32 then []
+      else
+        [
+          `P
+            "$(b,--build-type=ReleaseCompatPerf) has compatibility with 'perf' \
+             monitoring tool. Compatible with Linux only.";
+          `P
+            "$(b,--build-type=ReleaseCompatFuzz) has compatibility with 'afl' \
+             fuzzing tool. Compatible with Linux only.";
+        ])
+    "init"
+
 let main_t = Term.(ret @@ const (`Help (`Auto, None)))
 
 let () =
   Term.exit
   @@ Term.eval_choice
        (main_t, Term.info "opam dkml")
-       [
-         ( init_t,
-           Term.info
-             ~doc:
-               "Creates or updates an `_opam` subdirectory from zero or more \
-                `*.opam` files in the local directory"
-             ~man:
-               ([
-                  `P
-                    "The `_opam` directory, also known as the local Opam \
-                     switch, holds an OCaml compiler and all of the packages \
-                     that are specified in the `*.opam` files.";
-                  `P
-                    "$(b,--build-type=Release) uses the flamba optimizer \
-                     described at https://ocaml.org/manual/flambda.html";
-                ]
-               @
-               if Sys.win32 then []
-               else
-                 [
-                   `P
-                     "$(b,--build-type=ReleaseCompatPerf) has compatibility \
-                      with 'perf' monitoring tool. Compatible with Linux only.";
-                   `P
-                     "$(b,--build-type=ReleaseCompatFuzz) has compatibility \
-                      with 'afl' fuzzing tool. Compatible with Linux only.";
-                 ])
-             "init" );
-       ]
+       [ (version_t, version_info); (init_t, init_info) ]
