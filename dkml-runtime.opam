@@ -11,7 +11,7 @@ bug-reports: "https://github.com/diskuv/dkml-runtime-apps/issues"
 depends: [
   "dune" {>= "2.9"}
   "ocaml" {>= "4.12.1"}
-  "dkml-c-probe" {= version}
+  "dkml-c-probe" {>= "2.0.0~"}
   "odoc" {with-doc}
 ]
 dev-repo: "git+https://github.com/diskuv/dkml-runtime-apps.git"

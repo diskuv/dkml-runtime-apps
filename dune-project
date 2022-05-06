@@ -17,7 +17,7 @@
  (synopsis "Runtime scripts used by CLI applications and Opam plugins in a Diskuv OCaml installation")
  (depends
   (ocaml (>= 4.12.1))
-  (dkml-c-probe (= :version))))
+  (dkml-c-probe (>= 2.0.0~))))
 
 (package
  (name dkml-apps)
