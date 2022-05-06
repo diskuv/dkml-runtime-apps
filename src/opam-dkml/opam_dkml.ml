@@ -10,11 +10,11 @@ To setup on Windows:
     eval $(opam env --switch "$DiskuvOCamlHome/dkml" --set-switch)
 
 To test:
-    dune build vendor/drd/src/msys2/apps/opam-dkml/opam_dkml.exe
-    DKML_BUILD_TRACE=ON DKML_BUILD_TRACE_LEVEL=2 _build/default/vendor/drd/src/msys2/apps/opam-dkml/opam_dkml.exe
+    dune build src/opam-dkml/opam_dkml.exe
+    DKML_BUILD_TRACE=ON DKML_BUILD_TRACE_LEVEL=2 _build/default/src/opam-dkml/opam_dkml.exe
 
 To install and test:
-    opam install ./vendor/drd/src/msys2/apps/opam-dkml.opam
+    opam install ./opam-dkml.opam
     DKML_BUILD_TRACE=ON DKML_BUILD_TRACE_LEVEL=2 opam dkml
 *)
 open Bos

@@ -25,8 +25,6 @@ build: [
   #   <dkmldir>/vendor/drd/
   ["install" "-d" "dkmldir/vendor/drd"]
   ["tar" "xCfz" "dkmldir/vendor/drd" "dl/dkml-runtime-distribution.tar.gz" "--strip-components=1"]
-  #   temporary: until drd changed to use this Opam project instead
-  ["rm" "-rf" "dkmldir/vendor/drd/src/msys2/apps"]
 
   #   <dkmldir>/vendor/dkml-compiler/
   ["install" "-d" "dkmldir/vendor/dkml-compiler/src"]

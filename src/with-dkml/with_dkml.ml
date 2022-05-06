@@ -10,9 +10,9 @@ To setup on Windows:
     eval $(opam env --switch "$DiskuvOCamlHome/dkml" --set-switch)
 
 To test use x64-windows or arm64-osx for the DKML_VCPKG_HOST_TRIPLET (or leave that variable out):
-    dune build vendor/drd/src/msys2/apps/with-dkml/with_dkml.exe
-    DKML_VCPKG_HOST_TRIPLET=x64-windows DKML_BUILD_TRACE=ON DKML_BUILD_TRACE_LEVEL=2 _build/default/vendor/drd/src/msys2/apps/with-dkml/with_dkml.exe sleep 5
-    DKML_3P_PROGRAM_PATH='H:/build/windows_x86/vcpkg_installed/x86-windows/debug;H:/build/windows_x86/vcpkg_installed/x86-windows' DKML_3P_PREFIX_PATH='H:/build/windows_x86/vcpkg_installed/x86-windows/debug;H:/build/windows_x86/vcpkg_installed/x86-windows' DKML_BUILD_TRACE=ON DKML_BUILD_TRACE_LEVEL=2 ./vendor/drd/src/msys2/apps/_build/default/with-dkml/with_dkml.exe sleep 5
+    dune build src/with-dkml/with_dkml.exe
+    DKML_VCPKG_HOST_TRIPLET=x64-windows DKML_BUILD_TRACE=ON DKML_BUILD_TRACE_LEVEL=2 _build/default/src/with-dkml/with_dkml.exe sleep 5
+    DKML_3P_PROGRAM_PATH='H:/build/windows_x86/vcpkg_installed/x86-windows/debug;H:/build/windows_x86/vcpkg_installed/x86-windows' DKML_3P_PREFIX_PATH='H:/build/windows_x86/vcpkg_installed/x86-windows/debug;H:/build/windows_x86/vcpkg_installed/x86-windows' DKML_BUILD_TRACE=ON DKML_BUILD_TRACE_LEVEL=2 ./_build/default/src/with-dkml/with_dkml.exe sleep 5
 *)
 open Bos
 open Rresult
