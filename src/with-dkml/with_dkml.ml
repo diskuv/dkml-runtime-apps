@@ -496,7 +496,7 @@ let main_with_result () =
   let cmd = Cmd.of_list ([ Fpath.to_string env_exe ] @ cmd_and_args) in
 
   Lazy.force get_dkmlversion >>= fun dkmlversion ->
-  Lazy.force Dkml_probe.Target_context.V2.get_platform_name
+  Lazy.force Dkml_c_probe.C_abi.V2.get_platform_name
   >>= fun target_platform_name ->
   let cache_keys = [ dkmlversion ] in
   (* FIRST, set DKML_TARGET_ABI, which may be overridden by DKML_TARGET_PLATFORM_OVERRIDE *)

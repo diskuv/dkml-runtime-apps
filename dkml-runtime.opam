@@ -11,7 +11,7 @@ bug-reports: "https://github.com/diskuv/dkml-runtime-apps/issues"
 depends: [
   "dune" {>= "2.9"}
   "ocaml" {>= "4.12.1"}
-  "dkml-probe" {= version}
+  "dkml-c-probe" {= version}
   "odoc" {with-doc}
 ]
 dev-repo: "git+https://github.com/diskuv/dkml-runtime-apps.git"
@@ -25,6 +25,8 @@ build: [
   #   <dkmldir>/vendor/drd/
   ["install" "-d" "dkmldir/vendor/drd"]
   ["tar" "xCfz" "dkmldir/vendor/drd" "dl/dkml-runtime-distribution.tar.gz" "--strip-components=1"]
+  #   temporary: until drd changed to use this Opam project instead
+  ["rm" "-rf" "dkmldir/vendor/drd/src/msys2/apps"]
 
   #   <dkmldir>/vendor/dkml-compiler/
   ["install" "-d" "dkmldir/vendor/dkml-compiler/src"]
