@@ -1,4 +1,6 @@
 (executable
+ (package dkml-apps)
  (name with_dkml)
+ (public_name with-dkml.exe)
  ; No PPX! This should compile with the bare minimum Diskuv OCaml dependencies from the `system` switch
  (libraries dkml_runtime bos logs logs.fmt fmt fmt.tty sexplib sha))

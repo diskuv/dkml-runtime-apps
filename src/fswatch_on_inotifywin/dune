@@ -6,5 +6,7 @@
 ; Please submit a PR, and consider this a temporary hack!
 
 (executable
+ (package dkml-apps)
  (name fswatch)
+ (public_name dkml-fswatch.exe)
  (libraries unix))
