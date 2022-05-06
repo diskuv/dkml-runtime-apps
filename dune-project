@@ -13,19 +13,11 @@
 (bug_reports "https://github.com/diskuv/dkml-runtime-apps/issues")
 
 (package
- (name dkml-probe)
- (synopsis "Cross-compiler friendly characterizations of the OCaml native C compiler")
- (description "Using the C compiler of ocamlopt -config, which may be a cross-compiler, vends an OCaml module with enumerations of the target operating system and ABI, and a C header that introspects the same at compile time")
- (depends
-  (ocaml (>= 4.12.1))
-  (rresult (>= 0.6.0))))
-
-(package
  (name dkml-runtime)
  (synopsis "Runtime scripts used by CLI applications and Opam plugins in a Diskuv OCaml installation")
  (depends
   (ocaml (>= 4.12.1))
-  (dkml-probe (= :version))))
+  (dkml-c-probe (= :version))))
 
 (package
  (name dkml-apps)
