@@ -53,9 +53,9 @@ extra-source "dl/dkml-runtime-common.tar.gz" {
   ]
 }
 extra-source "dl/dkml-runtime-distribution.tar.gz" {
-  src: "https://github.com/diskuv/dkml-runtime-distribution/archive/refs/tags/v0.4.0-prerel20_r1.tar.gz"
+  src: "https://github.com/diskuv/dkml-runtime-distribution/archive/refs/tags/v0.4.0-prerel20_r2.tar.gz"
   checksum: [
-    "sha256=9f867ab1b56d4995e43c93681b90bb63e7d8810320f4a093d0f6c6c3c2c282ba"
+    "sha256=2b9699681343ac71ec6dfd6cce067d971e27ff9dd888a9544719e86ecc383872"
   ]
 }
 # The particular version of dkml-compiler (4.12.1, etc.) is unimportant. Only
