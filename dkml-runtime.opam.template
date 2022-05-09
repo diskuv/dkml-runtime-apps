@@ -29,18 +29,6 @@ build: [
   ]
   ["dune" "install" "-p" name "--create-install-files" name]
 ]
-extra-source "dl/dkml-runtime-common.tar.gz" {
-  src: "https://github.com/diskuv/dkml-runtime-common/archive/refs/tags/v0.4.0-prerel22.tar.gz"
-  checksum: [
-    "sha256=9d1e99345ba9c2aea8e306c9cb4e26e057cd99724e3c6f2a6aca596685d8d5fb"
-  ]
-}
-extra-source "dl/dkml-runtime-distribution.tar.gz" {
-  src: "https://github.com/diskuv/dkml-runtime-distribution/archive/refs/tags/v0.4.0-prerel22.tar.gz"
-  checksum: [
-    "sha256=a8675034847599ba5991ce5fbf33f85c8e43dc5441f87d17ef5d418fc51e01da"
-  ]
-}
 # The particular version of dkml-compiler (4.12.1, etc.) is unimportant. Only
 # the `src/standard-compiler-env-to-ocaml-configure-(env|launcher).sh` files
 # are captured in `src/common/dune`. TODO: May even want those two scripts to be
@@ -51,5 +39,17 @@ extra-source "dl/dkml-compiler.tar.gz" {
   checksum: [
     "md5=d8c46fef8df02a89db552e20b572e481"
     "sha256=27675482efe46a762b66db09a2c1e7ff6671cdd8df62aace709e80a7519310b3"
+  ]
+}
+extra-source "dl/dkml-runtime-common.tar.gz" {
+  src: "https://github.com/diskuv/dkml-runtime-common/archive/refs/tags/v0.4.0-prerel23.tar.gz"
+  checksum: [
+    "sha256=bbd262ebf4e464fb6cf918932e5ae2102352708c62660cb125d4b5c8b241fce4"
+  ]
+}
+extra-source "dl/dkml-runtime-distribution.tar.gz" {
+  src: "https://github.com/diskuv/dkml-runtime-distribution/archive/refs/tags/v0.4.0-prerel23.tar.gz"
+  checksum: [
+    "sha256=86c580c6d34ca709c74d61b9193a92f7482e5dd8021110a0b4017995b02d6461"
   ]
 }
