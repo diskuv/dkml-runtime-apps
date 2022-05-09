@@ -17,6 +17,9 @@
  (synopsis "Runtime scripts used by CLI applications and Opam plugins in a Diskuv OCaml installation")
  (depends
   (ocaml (>= 4.12.1))
+  (astring      (>= 0.8.5))
+  (bos          (>= 0.2.0))
+  (sexplib      (>= 0.14.0))
   (dkml-c-probe (>= 2.0.0~))))
 
 (package
@@ -26,7 +29,10 @@
  (depends
   (ocaml (>= 4.12.1))
   (dkml-runtime (= :version))
-  (sexplib (>= 0.14.0))))
+  (sexplib  (>= 0.14.0))
+  (logs     (>= 0.7.0))
+  (fmt      (>= 0.8.9))
+  (sha      (>= 1.15.2))))
 
 (package
  (name opam-dkml)
@@ -35,4 +41,6 @@
  (depends
   (ocaml (>= 4.12.1))
   (dkml-runtime (= :version))
+  (logs     (>= 0.7.0))
+  (fmt      (>= 0.8.9))
   (cmdliner (>= 1.0))))
