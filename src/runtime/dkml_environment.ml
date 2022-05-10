@@ -37,28 +37,35 @@ let set_msys2_entries target_platform_name =
   Lazy.force get_msys2_dir_opt >>= function
   | None -> R.ok ()
   | Some msys2_dir ->
-      (* 1. MSYSTEM = CLANG64
-         https://www.msys2.org/docs/environments/ *)
-      OS.Env.set_var "MSYSTEM" (Some "CLANG64") >>= fun () ->
-      (* 2. MSYSTEM_CARCH, MSYSTEM_CHOST, MSYSTEM_PREFIX for 64-bit MSYS.
+      (* See https://www.msys2.org/docs/environments/ for the magic values.
+
+          1. MSYSTEM = CLANG32 or CLANG64
+          2. MSYSTEM_CARCH, MSYSTEM_CHOST, MSYSTEM_PREFIX for 64-bit MSYS
+
           There is no 32-bit MSYS2 tooling (well, 32-bit was deprecated), but you don't need 32-bit
           MSYS2 binaries; just a 32-bit (cross-)compiler.
-
-          See "MSYS" entry for https://www.msys2.org/docs/environments/ for the magic values.
       *)
       (match target_platform_name with
-      | "windows_x86" | "windows_x86_64" ->
-          R.ok ("x86_64", "x86_64-w64-mingw32", "/clang64")
+      | "windows_x86" -> R.ok ("CLANG32", "i686", "i686-w64-mingw32", "clang32")
+      | "windows_x86_64" ->
+          R.ok ("CLANG64", "x86_64", "x86_64-w64-mingw32", "clang64")
+      | "windows_arm64" ->
+          R.ok ("CLANGARM64", "aarch64", "aarch64-w64-mingw32", "clangarm64")
       | _ ->
           R.error_msg @@ "The target platform name '" ^ target_platform_name
-          ^ "' is not a recognized Windows platform")
-      >>= fun (carch, chost, prefix) ->
+          ^ "' is not a supported Windows platform")
+      >>= fun (msystem, carch, chost, prefix) ->
+      OS.Env.set_var "MSYSTEM" (Some msystem) >>= fun () ->
       OS.Env.set_var "MSYSTEM_CARCH" (Some carch) >>= fun () ->
       OS.Env.set_var "MSYSTEM_CHOST" (Some chost) >>= fun () ->
-      OS.Env.set_var "MSYSTEM_PREFIX" (Some prefix) >>= fun () ->
+      OS.Env.set_var "MSYSTEM_PREFIX" (Some ("/" ^ prefix)) >>= fun () ->
       (* 3. Remove MSYS2 entries, if any, from PATH *)
       prune_path_of_msys2 () >>= fun () ->
-      (* 4. Add MSYS2 back to front of PATH *)
+      (* 4. Add MSYS2 <prefix>/bin and /usr/bin to front of PATH *)
       OS.Env.req_var "PATH" >>= fun path ->
       OS.Env.set_var "PATH"
-        (Some (Fpath.(msys2_dir / "usr" / "bin" |> to_string) ^ ";" ^ path))
+        (Some
+           (Fpath.(msys2_dir / prefix / "bin" |> to_string)
+           ^ ";"
+           ^ Fpath.(msys2_dir / "usr" / "bin" |> to_string)
+           ^ ";" ^ path))
