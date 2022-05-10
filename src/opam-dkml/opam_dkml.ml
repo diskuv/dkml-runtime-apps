@@ -70,7 +70,7 @@ let localdir_opt_t =
   Arg.(value & opt (some (conv_fp dir)) None & info [ "d"; "dir" ] ~doc ~docv)
 
 let version_t =
-  let print () = print_endline "%%VERSION%%" in
+  let print () = print_endline Opam_dkml_config.version in
   Term.(const print $ const ())
 
 let version_info =
