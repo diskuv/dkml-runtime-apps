@@ -45,7 +45,7 @@ let get_opam_switch_prefix =
       >>| fun opamswitchprefix ->
       match (fpath_notnull opamswitchprefix, dkmlhome_dir_opt) with
       | true, _ -> opamswitchprefix
-      | false, Some dkmlhome_dir -> Fpath.(dkmlhome_dir / "system")
+      | false, Some dkmlhome_dir -> Fpath.(dkmlhome_dir / "dkml")
       | false, None -> Fpath.(opamroot / "default") )
 
 (** [get_dkml_product_plugin_dir product] is a lazy function to get the DKML plugin product directory. A product
