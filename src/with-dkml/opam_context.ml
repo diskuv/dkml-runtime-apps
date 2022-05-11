@@ -47,13 +47,3 @@ let get_opam_switch_prefix =
       | true, _ -> opamswitchprefix
       | false, Some dkmlhome_dir -> Fpath.(dkmlhome_dir / "dkml")
       | false, None -> Fpath.(opamroot / "default") )
-
-(** [get_dkml_product_plugin_dir product] is a lazy function to get the DKML plugin product directory. A product
-    may be one of: [vcpkg].
-    The DKML plugins are located in OPAMROOT/plugins/diskuvocaml/PRODUCT/<dkmlversion>.
-  *)
-let get_dkml_product_plugin_dir product =
-  lazy
-    ( Lazy.force get_opam_root >>= fun opam_root ->
-      Lazy.force get_dkmlversion >>| fun dkmlversion ->
-      Fpath.(opam_root / "plugins" / "diskuvocaml" / product / dkmlversion) )

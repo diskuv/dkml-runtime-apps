@@ -9,9 +9,8 @@ To setup on Windows:
   2. Run in MSYS2:
     eval $(opam env --switch "$DiskuvOCamlHome/dkml" --set-switch)
 
-To test use x64-windows or arm64-osx for the DKML_VCPKG_HOST_TRIPLET (or leave that variable out):
+To test DKML_3P_PROGRAM_PATH or DKML_3P_PREFIX_PATH:
     dune build src/with-dkml/with_dkml.exe
-    DKML_VCPKG_HOST_TRIPLET=x64-windows DKML_BUILD_TRACE=ON DKML_BUILD_TRACE_LEVEL=2 _build/default/src/with-dkml/with_dkml.exe sleep 5
     DKML_3P_PROGRAM_PATH='H:/build/windows_x86/vcpkg_installed/x86-windows/debug;H:/build/windows_x86/vcpkg_installed/x86-windows' DKML_3P_PREFIX_PATH='H:/build/windows_x86/vcpkg_installed/x86-windows/debug;H:/build/windows_x86/vcpkg_installed/x86-windows' DKML_BUILD_TRACE=ON DKML_BUILD_TRACE_LEVEL=2 ./_build/default/src/with-dkml/with_dkml.exe sleep 5
 *)
 open Bos
@@ -19,7 +18,6 @@ open Rresult
 open Astring
 open Sexplib
 open Opam_context
-open Vcpkg_context
 open Dkml_runtime
 open Dkml_runtime.Dkml_environment
 
@@ -165,7 +163,6 @@ let set_msvc_entries cache_keys =
         (* The cache keys may be:
 
            - deployment id (basically the version of DKML)
-           - the vcpkg installation path (from DKML_VCPKG_HOST_TRIPLET/DKML_VCPKG_MANIFEST_DIR environment values)
 
            to which we add:
 
@@ -420,50 +417,6 @@ let set_3p_program_entries cache_keys =
   Logs.debug (fun m -> m "DKML_3P_PROGRAM_PATH = @[%a@]" Fmt.(list string) dirs);
   helper (List.rev dirs) >>| fun () -> String.concat ~sep:";" dirs :: cache_keys
 
-(* [set_vcpkg_entries cache_keys] will modify MSVC/GCC/clang variables and PKG_CONFIG_PATH and PATH if
-    vcpkg can be detected through [get_vcpkg_installed_dir].
-
-   The CPATH, COMPILER_PATH, INCLUDE, LIBRARY_PATH, and LIB variables are modified so that
-   if:
-
-   - MSVC is used, INCLUDE and LIB are recognized
-   - GCC is used, COMPILER_PATH and LIBRARY_PATH are recognized
-     (https://gcc.gnu.org/onlinedocs/gcc/Environment-Variables.html#Environment-Variables)
-   - clang is used, CPATH and LIBRARY_PATH are are recognized
-     ( https://clang.llvm.org/docs/CommandGuide/clang.html and https://reviews.llvm.org/D65880)
-*)
-let set_vcpkg_entries cache_keys =
-  (* 1. Remove vcpkg entries, if any, from compiler variables and PKG_CONFIG_PATH.
-      The gcc compiler variables COMPILER_PATH and LIBRARY_PATH are always colon-separated
-      per https://gcc.gnu.org/onlinedocs/gcc/Environment-Variables.html#Environment-Variables.
-      This _might_ conflict with clang if clang were run on Windows (very very unlikely)
-      because clang's CPATH is explicitly OS path separated; perhaps clang's LIBRARY_PATH is as
-      well.
-  *)
-  let dir_sep = Fpath.dir_sep in
-  let f entry =
-    let contains = path_contains entry in
-    not
-      (contains (dir_sep ^ "vcpkg_installed" ^ dir_sep)
-      || contains (dir_sep ^ "vcpkg" ^ dir_sep)
-         && contains (dir_sep ^ "installed" ^ dir_sep))
-  in
-  prune_entries f >>= fun () ->
-  (* 2. Add vcpkg to front of INCLUDE,LIB,...,PKG_CONFIG_PATH and PATH, if vcpkg is available.
-     For PATH, add:
-     * <vcpkg>/bin
-     * <vcpkg>/tools/pkgconf and whatever other tools exist
-  *)
-  Lazy.force get_vcpkg_installed_dir_opt >>= function
-  | None ->
-      Logs.debug (fun m -> m "No vcpkg installed directory");
-      R.ok ("" :: cache_keys)
-  | Some vcpkg_installed_dir ->
-      let vcpkg_installed = Fpath.to_string vcpkg_installed_dir in
-      Logs.debug (fun m -> m "vcpkg installed directory = %s" vcpkg_installed);
-      prepend_entries ~tools:true vcpkg_installed_dir >>| fun () ->
-      vcpkg_installed :: cache_keys
-
 let main_with_result () =
   (* Setup logging *)
   Fmt_tty.setup_std_outputs ();
@@ -515,18 +468,13 @@ let main_with_result () =
   set_msys2_entries target_platform_name >>= fun () ->
   (* THIRD, set MSVC entries *)
   set_msvc_entries cache_keys >>= fun cache_keys ->
-  (* FOURTH, set vcpkg entries.
-     - Since MSVC overwrites INCLUDE and LIB entirely, we have to do vcpkg entries
-       _after_ MSVC.
-  *)
-  set_vcpkg_entries cache_keys >>= fun cache_keys ->
-  (* FIFTH, set third-party (3p) prefix entries.
+  (* FOURTH, set third-party (3p) prefix entries.
      Since MSVC overwrites INCLUDE and LIB entirely, we have to do vcpkg entries
      _after_ MSVC. *)
   set_3p_prefix_entries cache_keys >>= fun cache_keys ->
-  (* SIXTH, set third-party (3p) program entries. *)
+  (* FIFTH, set third-party (3p) program entries. *)
   set_3p_program_entries cache_keys >>= fun _cache_keys ->
-  (* SEVENTH, stop special variables from propagating. *)
+  (* SIXTH, stop special variables from propagating. *)
   OS.Env.set_var "DKML_BUILD_TRACE" None >>= fun () ->
   OS.Env.set_var "DKML_BUILD_TRACE_LEVEL" None >>= fun () ->
   (* Diagnostics *)
