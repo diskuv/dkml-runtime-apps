@@ -39,14 +39,18 @@ let set_msys2_entries target_platform_name =
   | Some msys2_dir ->
       (* See https://www.msys2.org/docs/environments/ for the magic values.
 
-          1. MSYSTEM = CLANG32 or CLANG64
+          1. MSYSTEM = MINGW32 or CLANG64
           2. MSYSTEM_CARCH, MSYSTEM_CHOST, MSYSTEM_PREFIX for 64-bit MSYS
 
           There is no 32-bit MSYS2 tooling (well, 32-bit was deprecated), but you don't need 32-bit
           MSYS2 binaries; just a 32-bit (cross-)compiler.
+
+          We should use CLANG32, but it is still experimental as of 2022-05-11.
+          So we use MINGW32.
+          Confer: https://issuemode.com/issues/msys2/MINGW-packages/18837088
       *)
       (match target_platform_name with
-      | "windows_x86" -> R.ok ("CLANG32", "i686", "i686-w64-mingw32", "clang32")
+      | "windows_x86" -> R.ok ("MINGW32", "i686", "i686-w64-mingw32", "mingw32")
       | "windows_x86_64" ->
           R.ok ("CLANG64", "x86_64", "x86_64-w64-mingw32", "clang64")
       | "windows_arm64" ->
