@@ -81,7 +81,7 @@ let init_t =
   @@ Term.(
        const rresult_to_term_result
        $ (const Cmd_init.run $ const setup $ localdir_opt_t
-        $ Cmd_init.buildtype_t $ yes_t))
+        $ Cmd_init.buildtype_t $ yes_t $ Cmd_init.non_system_compiler_t))
 
 let init_info =
   Term.info

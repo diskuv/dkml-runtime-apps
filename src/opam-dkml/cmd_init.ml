@@ -5,25 +5,41 @@ open Dkml_runtime.Monadic_operators
 
 type buildtype = Debug | Release | ReleaseCompatPerf | ReleaseCompatFuzz
 
+let non_system_opt = "non-system-compiler"
+
+let non_system_compiler_t =
+  let doc =
+    "Create a non-system OCaml compiler unique to the newly created Opam \
+     switch rather than re-use the system OCaml compiler. A non-system OCaml \
+     compiler must be built from scratch so it will take minutes to compile, \
+     but the non-system OCaml compiler can be customized with options not \
+     present in the system OCaml compiler."
+  in
+  Arg.(value & flag & info [ non_system_opt ] ~doc)
+
 let buildtype_t =
   let doc =
-    if Sys.win32 then {|$(b,Debug) or $(b,Release)|}
-    else
-      {|$(b,Debug), $(b,Release), $(b,ReleaseCompatPerf), or $(b,ReleaseCompatFuzz)|}
+    Fmt.str "%s. Only used when --%s is given."
+      (if Sys.win32 then {|$(b,Debug) or $(b,Release)|}
+      else
+        {|$(b,Debug), $(b,Release), $(b,ReleaseCompatPerf), or $(b,ReleaseCompatFuzz)|})
+      non_system_opt
   in
   let docv = "BUILDTYPE" in
   let conv_buildtype =
-    Arg.enum
-      [
-        ("Debug", Debug);
-        ("Release", Release);
-        ("ReleaseCompatPerf", ReleaseCompatPerf);
-        ("ReleaseCompatFuzz", ReleaseCompatFuzz);
-      ]
+    if Sys.win32 then Arg.enum [ ("Debug", Debug); ("Release", Release) ]
+    else
+      Arg.enum
+        [
+          ("Debug", Debug);
+          ("Release", Release);
+          ("ReleaseCompatPerf", ReleaseCompatPerf);
+          ("ReleaseCompatFuzz", ReleaseCompatFuzz);
+        ]
   in
   Arg.(value & opt conv_buildtype Debug & info [ "b"; "build-type" ] ~doc ~docv)
 
-let run f_setup localdir_fp_opt buildtype yes =
+let run f_setup localdir_fp_opt buildtype yes non_system_compiler =
   f_setup () >>= fun () ->
   OS.Dir.with_tmp "dkml-scripts-%s"
     (fun dir_fp () ->
@@ -41,6 +57,8 @@ let run f_setup localdir_fp_opt buildtype yes =
            Logs.debug (fun m -> m "MSYS2 directory: %a" Fpath.pp msys2_dir);
            Ok Fpath.(msys2_dir / "usr" / "bin" / "env.exe"))
       >>= fun env_exe ->
+      (* Find target ABI *)
+      Lazy.force Dkml_c_probe.C_abi.V2.get_platform_name >>= fun target_abi ->
       (* Figure out OPAMHOME containing bin/opam *)
       OS.Cmd.get_tool (Cmd.v "opam") >>= fun opam_fp ->
       let opam_bin1_fp, _ = Fpath.split_base opam_fp in
@@ -75,13 +93,15 @@ let run f_setup localdir_fp_opt buildtype yes =
              "DKML_FEATUREFLAG_CMAKE_PLATFORM=ON";
              "/bin/sh";
              Fpath.to_string create_switch_fp;
+             "-p";
+             target_abi;
              "-d";
              Fpath.to_string localdir_fp;
              "-o";
              Fpath.to_string opam_home_fp;
-             "-v";
-             Fpath.to_string ocaml_home_fp;
            ]
+          @ (if non_system_compiler then []
+            else [ "-v"; Fpath.to_string ocaml_home_fp ])
           @ (if yes then [ "-y" ] else [])
           @
           match buildtype with

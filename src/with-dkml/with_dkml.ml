@@ -450,14 +450,14 @@ let main_with_result () =
 
   Lazy.force get_dkmlversion >>= fun dkmlversion ->
   Lazy.force Dkml_c_probe.C_abi.V2.get_platform_name
-  >>= fun target_platform_name ->
+  >>= fun target_abi ->
   let cache_keys = [ dkmlversion ] in
   (* FIRST, set DKML_TARGET_ABI, which may be overridden by DKML_TARGET_PLATFORM_OVERRIDE *)
-  let target_platform_name =
-    OS.Env.opt_var "DKML_TARGET_PLATFORM_OVERRIDE" ~absent:target_platform_name
+  let target_abi =
+    OS.Env.opt_var "DKML_TARGET_PLATFORM_OVERRIDE" ~absent:target_abi
   in
-  OS.Env.set_var "DKML_TARGET_ABI" (Some target_platform_name) >>= fun () ->
-  let cache_keys = target_platform_name :: cache_keys in
+  OS.Env.set_var "DKML_TARGET_ABI" (Some target_abi) >>= fun () ->
+  let cache_keys = target_abi :: cache_keys in
   (* SECOND, set MSYS2 environment variables.
      - This is needed before is_msys2_msys_build_machine() is called from crossplatform-functions.sh
        in add_microsoft_visual_studio_entries.
@@ -465,7 +465,7 @@ let main_with_result () =
        can be inserted by VsDevCmd.bat before any MSYS2 `link.exe`. (`link.exe` is one example of many
        possible conflicts).
   *)
-  set_msys2_entries target_platform_name >>= fun () ->
+  set_msys2_entries target_abi >>= fun () ->
   (* THIRD, set MSVC entries *)
   set_msvc_entries cache_keys >>= fun cache_keys ->
   (* FOURTH, set third-party (3p) prefix entries.
