@@ -429,28 +429,10 @@ let main_with_result () =
   else if dbt = "ON" then Logs.set_level (Some Logs.Info)
   else Logs.set_level (Some Logs.Warning);
 
-  (* Create a command line with `...\usr\bin\env.exe CMD [ARGS...]`.
-     We use env.exe because it has logic to check if CMD is a shell
-     script and run it accordingly (MSYS2 always uses bash for some reason, instead
-     of looking at shebang).
-  *)
-  Fpath.of_string "/" >>= fun slash ->
-  (Lazy.force get_msys2_dir_opt >>= function
-   | None -> R.ok Fpath.(slash / "usr" / "bin" / "env")
-   | Some msys2_dir ->
-       Logs.debug (fun m -> m "MSYS2 directory: %a" Fpath.pp msys2_dir);
-       R.ok Fpath.(msys2_dir / "usr" / "bin" / "env.exe"))
-  >>= fun env_exe ->
-  let cmd_and_args = List.tl (Array.to_list Sys.argv) in
-  (if [] = cmd_and_args then
-   R.error_msgf "You need to supply a command, like `%s bash`" OS.Arg.exec
-  else R.ok ())
-  >>= fun () ->
-  let cmd = Cmd.of_list ([ Fpath.to_string env_exe ] @ cmd_and_args) in
-
+  (* Create a command line like `...\usr\bin\env.exe CMD [ARGS...]`. *)
+  Cmdline.create () >>= fun cmd ->
   Lazy.force get_dkmlversion >>= fun dkmlversion ->
-  Lazy.force Dkml_c_probe.C_abi.V2.get_platform_name
-  >>= fun target_abi ->
+  Lazy.force Dkml_c_probe.C_abi.V2.get_platform_name >>= fun target_abi ->
   let cache_keys = [ dkmlversion ] in
   (* FIRST, set DKML_TARGET_ABI, which may be overridden by DKML_TARGET_PLATFORM_OVERRIDE *)
   let target_abi =
