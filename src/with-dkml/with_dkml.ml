@@ -429,8 +429,6 @@ let main_with_result () =
   else if dbt = "ON" then Logs.set_level (Some Logs.Info)
   else Logs.set_level (Some Logs.Warning);
 
-  (* Create a command line like `...\usr\bin\env.exe CMD [ARGS...]`. *)
-  Cmdline.create () >>= fun cmd ->
   Lazy.force get_dkmlversion >>= fun dkmlversion ->
   Lazy.force Dkml_c_probe.C_abi.V2.get_platform_name >>= fun target_abi ->
   let cache_keys = [ dkmlversion ] in
@@ -459,6 +457,10 @@ let main_with_result () =
   (* SIXTH, stop special variables from propagating. *)
   OS.Env.set_var "DKML_BUILD_TRACE" None >>= fun () ->
   OS.Env.set_var "DKML_BUILD_TRACE_LEVEL" None >>= fun () ->
+  (* Create a command line like `...\usr\bin\env.exe CMD [ARGS...]`.
+     More environment entries can be made, but this is at the end where
+     there is no need to cache the environment. *)
+  Cmdline.create_and_setenv_if_necessary () >>= fun cmd ->
   (* Diagnostics *)
   OS.Env.current () >>= fun current_env ->
   OS.Dir.current () >>= fun current_dir ->

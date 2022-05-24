@@ -1,12 +1,48 @@
 open Bos
+open Astring
 
 let is_with_dkml string_path =
-  let wd = [ "with_dkml"; "with_dkml.exe"; "with-dkml"; "with-dkml.exe" ] in
+  let search = [ "with_dkml"; "with_dkml.exe"; "with-dkml"; "with-dkml.exe" ] in
   match Fpath.of_string string_path with
   | Ok argv0_p ->
       let n = Fpath.filename argv0_p in
-      List.mem n wd
+      List.mem n search
   | Error _ -> false
+
+let is_dune path =
+  let search = [ "dune"; "dune.exe" ] in
+  let n = Fpath.filename path in
+  List.mem n search
+
+let set_dune_env () =
+  let ( let* ) = Rresult.R.( >>= ) in
+  let dkmlhome = OS.Env.opt_var "DiskuvOCamlHome" ~absent:"" in
+  match dkmlhome with
+  | "" -> Ok ()
+  | _ ->
+      let* dkmlhome_p = Fpath.of_string dkmlhome in
+      let* path = OS.Env.req_var "PATH" in
+      let existing_paths = String.cuts ~empty:false ~sep:";" path in
+      let inotify_win_dir = Fpath.(dkmlhome_p / "tools" / "inotify-win") in
+      let fswatch_dir = Fpath.(dkmlhome_p / "tools" / "fswatch") in
+      let when_exists_add_to_path dir old_path =
+        let* dir_exists = OS.Dir.exists dir in
+        if dir_exists then
+          let entry = Fpath.to_string dir in
+          if List.mem entry existing_paths then (
+            Logs.debug (fun l ->
+                l "Skipping adding pre-existent %a to PATH" Fpath.pp dir);
+            Ok old_path)
+          else (
+            Logs.debug (fun l -> l "Appending %a to PATH" Fpath.pp dir);
+            let new_path = old_path ^ ";" ^ entry in
+            let* () = OS.Env.set_var "PATH" (Some new_path) in
+            Ok new_path)
+        else Ok old_path
+      in
+      let* path = when_exists_add_to_path inotify_win_dir path in
+      let* _path = when_exists_add_to_path fswatch_dir path in
+      Ok ()
 
 (** Create a command line like [".../usr/bin/env.exe"; ARGS...]
     or ["XYZ-real.exe"; ARGS...].
@@ -25,18 +61,23 @@ let is_with_dkml string_path =
     like the old ["dune.exe"], but will have all the UNIX tools through MSYS
     and the MSVC compiler available to it. You can do the same with
     ["opam.exe"] or any other executable.
+
+    Special case: If the current executable is ["dune"] and the environment
+    variable ["DiskuvOCamlHome"] is defined, then
+    ["$DiskuvOCamlHome/tools/inotify-win"] and
+    ["$DiskuvOCamlHome/tools/fswatch"] are appended to the PATH.
 *)
-let create () =
+let create_and_setenv_if_necessary () =
   let ( let* ) = Rresult.R.( >>= ) in
   let ( let+ ) = Rresult.R.( >>| ) in
   let* slash = Fpath.of_string "/" in
   let get_env_exe () =
     let* x = Lazy.force Dkml_runtime.get_msys2_dir_opt in
     match x with
-    | None -> Rresult.R.ok Fpath.(slash / "usr" / "bin" / "env")
+    | None -> Ok Fpath.(slash / "usr" / "bin" / "env")
     | Some msys2_dir ->
         Logs.debug (fun m -> m "MSYS2 directory: %a" Fpath.pp msys2_dir);
-        Rresult.R.ok Fpath.(msys2_dir / "usr" / "bin" / "env.exe")
+        Ok Fpath.(msys2_dir / "usr" / "bin" / "env.exe")
   in
   let get_real_exe cmd_no_ext_p =
     let dir, b = Fpath.split_base cmd_no_ext_p in
@@ -48,13 +89,14 @@ let create () =
     match Array.to_list Sys.argv with
     | cmd :: args when is_with_dkml cmd ->
         let* exe = get_env_exe () in
-        Rresult.R.ok ([ Fpath.to_string exe ] @ args)
+        Ok ([ Fpath.to_string exe ] @ args)
     | cmd :: args ->
         let* cmd_p = Fpath.of_string cmd in
         let before_ext, ext = Fpath.split_ext cmd_p in
         let cmd_no_ext_p = if ext = ".exe" then before_ext else cmd_p in
         let* exe = get_real_exe cmd_no_ext_p in
-        Rresult.R.ok ([ Fpath.to_string exe ] @ args)
+        let* () = if is_dune cmd_p then set_dune_env () else Ok () in
+        Ok ([ Fpath.to_string exe ] @ args)
     | _ ->
         Rresult.R.error_msgf "You need to supply a command, like `%s bash`"
           OS.Arg.exec
