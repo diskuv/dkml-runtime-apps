@@ -44,18 +44,19 @@ let set_dune_env () =
       let* _path = when_exists_add_to_path fswatch_dir path in
       Ok ()
 
-(** Create a command line like [".../usr/bin/env.exe"; ARGS...]
-    or ["XYZ-real.exe"; ARGS...].
+(** Create a command line like [let cmdline_a = [".../usr/bin/env.exe"; Args.others]]
+    or [let cmdline_b = [".../usr/bin/env.exe"; "XYZ-real.exe"; Args.others]].
 
-    If the current executable is named ["with-dkml"] or ["with_dkml"], then
-    ["env.exe"] is the executable that is run.
     We use env.exe because it has logic to check if CMD is a shell
     script and run it accordingly (MSYS2 always uses bash for some reason, instead
-    of looking at shebang).
+    of looking at shebang). And it seems to setup the environment
+    so things like the pager (ex. ["opam --help"]) work correctly.
 
-    Otherwise the ["XYZ-real.exe"; ARGS...] command line
-    is chosen, where the current executable is named ["XYZ.exe"]. If you are a
-    distribution maintainer all you
+    If the current executable is named ["with-dkml"] or ["with_dkml"], then
+    the [cmdline_a] form of the command line is run.
+
+    Otherwise the [cmdline_b] command line is chosen, where the current
+    executable is named ["XYZ.exe"]. If you distribute binaries all you
     need to do is rename ["dune.exe"] to ["dune-real.exe"] and
     ["with-dkml.exe"] to ["dune.exe"], and the new ["dune.exe"] will behave
     like the old ["dune.exe"], but will have all the UNIX tools through MSYS
@@ -71,7 +72,7 @@ let create_and_setenv_if_necessary () =
   let ( let* ) = Rresult.R.( >>= ) in
   let ( let+ ) = Rresult.R.( >>| ) in
   let* slash = Fpath.of_string "/" in
-  let get_env_exe () =
+  let* env_exe =
     let* x = Lazy.force Dkml_runtime.get_msys2_dir_opt in
     match x with
     | None -> Ok Fpath.(slash / "usr" / "bin" / "env")
@@ -88,8 +89,7 @@ let create_and_setenv_if_necessary () =
   let+ cmd_and_args =
     match Array.to_list Sys.argv with
     | cmd :: args when is_with_dkml cmd ->
-        let* exe = get_env_exe () in
-        Ok ([ Fpath.to_string exe ] @ args)
+        Ok ([ Fpath.to_string env_exe ] @ args)
     | cmd :: args ->
         Logs.debug (fun l -> l "Desired command is named: %s" cmd);
         (* If the command is not absolute like "dune", then we need to find
@@ -101,7 +101,7 @@ let create_and_setenv_if_necessary () =
         let cmd_no_ext_p = if ext = ".exe" then before_ext else abs_cmd_p in
         let* exe = get_real_exe cmd_no_ext_p in
         let* () = if is_dune abs_cmd_p then set_dune_env () else Ok () in
-        Ok ([ Fpath.to_string exe ] @ args)
+        Ok ([ Fpath.to_string env_exe; Fpath.to_string exe ] @ args)
     | _ ->
         Rresult.R.error_msgf "You need to supply a command, like `%s bash`"
           OS.Arg.exec
