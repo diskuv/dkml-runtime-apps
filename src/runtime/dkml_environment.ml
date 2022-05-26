@@ -22,18 +22,19 @@ let path_ends_with entry s =
   String.is_suffix ~affix:(platform_path_norm s) (platform_path_norm entry)
 
 (** [prune_path_of_msys2 ()] removes .../MSYS2/usr/bin from the PATH environment variable *)
-let prune_path_of_msys2 () =
+let prune_path_of_msys2 prefix =
   OS.Env.req_var "PATH" >>= fun path ->
   String.cuts ~empty:false ~sep:";" path
   |> List.filter (fun entry ->
          let ends_with = path_ends_with entry in
-         not (ends_with "\\MSYS2\\usr\\bin"))
+         (not (ends_with "\\MSYS2\\usr\\bin"))
+         && not (ends_with ("\\MSYS2\\" ^ prefix ^ "\\bin")))
   |> fun paths -> Some (String.concat ~sep:";" paths) |> OS.Env.set_var "PATH"
 
 (** Set the MSYSTEM environment variable to MSYS and place MSYS2 binaries at the front of the PATH.
     Any existing MSYS2 binaries in the PATH will be removed.
   *)
-let set_msys2_entries target_platform_name =
+let set_msys2_entries ~minimize_sideeffects target_platform_name =
   Lazy.force get_msys2_dir_opt >>= function
   | None -> R.ok ()
   | Some msys2_dir ->
@@ -63,13 +64,18 @@ let set_msys2_entries target_platform_name =
       OS.Env.set_var "MSYSTEM_CARCH" (Some carch) >>= fun () ->
       OS.Env.set_var "MSYSTEM_CHOST" (Some chost) >>= fun () ->
       OS.Env.set_var "MSYSTEM_PREFIX" (Some ("/" ^ prefix)) >>= fun () ->
-      (* 3. Remove MSYS2 entries, if any, from PATH *)
-      prune_path_of_msys2 () >>= fun () ->
-      (* 4. Add MSYS2 <prefix>/bin and /usr/bin to front of PATH *)
-      OS.Env.req_var "PATH" >>= fun path ->
-      OS.Env.set_var "PATH"
-        (Some
-           (Fpath.(msys2_dir / prefix / "bin" |> to_string)
-           ^ ";"
-           ^ Fpath.(msys2_dir / "usr" / "bin" |> to_string)
-           ^ ";" ^ path))
+      (* 3. Remove MSYS2 entries, if any, from PATH
+            _unless_ we are minimizing side-effects *)
+      (if minimize_sideeffects then Ok () else prune_path_of_msys2 prefix)
+      >>= fun () ->
+      (* 4. Add MSYS2 <prefix>/bin and /usr/bin to front of PATH
+            _unless_ we are minimizing side-effects. *)
+      if minimize_sideeffects then Ok ()
+      else
+        OS.Env.req_var "PATH" >>= fun path ->
+        OS.Env.set_var "PATH"
+          (Some
+             (Fpath.(msys2_dir / prefix / "bin" |> to_string)
+             ^ ";"
+             ^ Fpath.(msys2_dir / "usr" / "bin" |> to_string)
+             ^ ";" ^ path))

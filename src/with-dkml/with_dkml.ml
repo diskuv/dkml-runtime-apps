@@ -418,6 +418,7 @@ let set_3p_program_entries cache_keys =
   helper (List.rev dirs) >>| fun () -> String.concat ~sep:";" dirs :: cache_keys
 
 let main_with_result () =
+  let ( let* ) = R.( >>= ) in
   (* Setup logging *)
   Fmt_tty.setup_std_outputs ();
   Logs.set_reporter (Logs_fmt.reporter ());
@@ -429,6 +430,22 @@ let main_with_result () =
   else if dbt = "ON" then Logs.set_level (Some Logs.Info)
   else Logs.set_level (Some Logs.Warning);
 
+  (* ZEROTH, check and set a recursion guard so that only one environment
+     modification is performed.
+
+     The following env modifications will still happen:
+     1. create_and_setenv_if_necessary ()
+     2. msystem
+  *)
+  let original_guard = OS.Env.opt_var "WITHDKML_GUARD" ~absent:"0" in
+  OS.Env.set_var "WITHDKML_GUARD" (Some "1") >>= fun () ->
+  let minimize_sideeffects = "1" = original_guard in
+  if minimize_sideeffects then
+    Logs.debug (fun l ->
+        l
+          "Skipping most environment variable configuration because we are in \
+           subprocess of some with-dkml.exe");
+
   Lazy.force get_dkmlversion >>= fun dkmlversion ->
   Lazy.force Dkml_c_probe.C_abi.V2.get_platform_name >>= fun target_abi ->
   let cache_keys = [ dkmlversion ] in
@@ -436,7 +453,10 @@ let main_with_result () =
   let target_abi =
     OS.Env.opt_var "DKML_TARGET_PLATFORM_OVERRIDE" ~absent:target_abi
   in
-  OS.Env.set_var "DKML_TARGET_ABI" (Some target_abi) >>= fun () ->
+  let* () =
+    if minimize_sideeffects then Ok ()
+    else OS.Env.set_var "DKML_TARGET_ABI" (Some target_abi)
+  in
   let cache_keys = target_abi :: cache_keys in
   (* SECOND, set MSYS2 environment variables.
      - This is needed before is_msys2_msys_build_machine() is called from crossplatform-functions.sh
@@ -445,18 +465,22 @@ let main_with_result () =
        can be inserted by VsDevCmd.bat before any MSYS2 `link.exe`. (`link.exe` is one example of many
        possible conflicts).
   *)
-  set_msys2_entries target_abi >>= fun () ->
-  (* THIRD, set MSVC entries *)
-  set_msvc_entries cache_keys >>= fun cache_keys ->
-  (* FOURTH, set third-party (3p) prefix entries.
-     Since MSVC overwrites INCLUDE and LIB entirely, we have to do vcpkg entries
-     _after_ MSVC. *)
-  set_3p_prefix_entries cache_keys >>= fun cache_keys ->
-  (* FIFTH, set third-party (3p) program entries. *)
-  set_3p_program_entries cache_keys >>= fun _cache_keys ->
-  (* SIXTH, stop special variables from propagating. *)
-  OS.Env.set_var "DKML_BUILD_TRACE" None >>= fun () ->
-  OS.Env.set_var "DKML_BUILD_TRACE_LEVEL" None >>= fun () ->
+  let* () = set_msys2_entries ~minimize_sideeffects target_abi in
+  let* () =
+    if minimize_sideeffects then Ok ()
+    else
+      (* THIRD, set MSVC entries *)
+      set_msvc_entries cache_keys >>= fun cache_keys ->
+      (* FOURTH, set third-party (3p) prefix entries.
+         Since MSVC overwrites INCLUDE and LIB entirely, we have to do vcpkg entries
+         _after_ MSVC. *)
+      set_3p_prefix_entries cache_keys >>= fun cache_keys ->
+      (* FIFTH, set third-party (3p) program entries. *)
+      set_3p_program_entries cache_keys >>= fun _cache_keys ->
+      (* SIXTH, stop tracing variables from propagating. *)
+      OS.Env.set_var "DKML_BUILD_TRACE" None >>= fun () ->
+      OS.Env.set_var "DKML_BUILD_TRACE_LEVEL" None
+  in
   (* Create a command line like `...\usr\bin\env.exe CMD [ARGS...]`.
      More environment entries can be made, but this is at the end where
      there is no need to cache the environment. *)
