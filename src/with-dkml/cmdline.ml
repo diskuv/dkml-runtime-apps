@@ -91,11 +91,16 @@ let create_and_setenv_if_necessary () =
         let* exe = get_env_exe () in
         Ok ([ Fpath.to_string exe ] @ args)
     | cmd :: args ->
-        let* cmd_p = Fpath.of_string cmd in
-        let before_ext, ext = Fpath.split_ext cmd_p in
-        let cmd_no_ext_p = if ext = ".exe" then before_ext else cmd_p in
+        Logs.debug (fun l -> l "Desired command is named: %s" cmd);
+        (* If the command is not absolute like "dune", then we need to find
+           the absolute location of it. *)
+        let* abs_cmd_p = OS.Cmd.get_tool (Cmd.v cmd) in
+        Logs.debug (fun l ->
+            l "Absolute command path is: %a" Fpath.pp abs_cmd_p);
+        let before_ext, ext = Fpath.split_ext abs_cmd_p in
+        let cmd_no_ext_p = if ext = ".exe" then before_ext else abs_cmd_p in
         let* exe = get_real_exe cmd_no_ext_p in
-        let* () = if is_dune cmd_p then set_dune_env () else Ok () in
+        let* () = if is_dune abs_cmd_p then set_dune_env () else Ok () in
         Ok ([ Fpath.to_string exe ] @ args)
     | _ ->
         Rresult.R.error_msgf "You need to supply a command, like `%s bash`"
