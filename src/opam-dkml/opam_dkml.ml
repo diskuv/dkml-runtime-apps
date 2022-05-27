@@ -35,7 +35,8 @@ let setup () =
   else Logs.set_level (Some Logs.Warning);
 
   (* Setup MSYS2 *)
-  Lazy.force Dkml_c_probe.C_abi.V2.get_abi_name
+  Rresult.R.error_to_msg ~pp_error:Fmt.string
+    (Lazy.force Dkml_c_probe.C_abi.V2.get_abi_name)
   >>= fun target_platform_name ->
   Dkml_environment.set_msys2_entries ~minimize_sideeffects:false
     target_platform_name

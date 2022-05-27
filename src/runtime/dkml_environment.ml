@@ -8,7 +8,7 @@ let platform_path_norm s =
   | Ok IOS | Ok OSX | Ok Windows -> String.Ascii.lowercase s
   | Ok Android | Ok Linux -> s
   | Error msg ->
-      Fmt.pf Fmt.stderr "FATAL: %a@\n" Rresult.R.pp_msg msg;
+      Fmt.pf Fmt.stderr "FATAL: %s@\n" msg;
       exit 1
 
 let path_contains entry s =

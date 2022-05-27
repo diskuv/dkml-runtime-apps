@@ -447,7 +447,9 @@ let main_with_result () =
            subprocess of some with-dkml.exe");
 
   Lazy.force get_dkmlversion >>= fun dkmlversion ->
-  Lazy.force Dkml_c_probe.C_abi.V2.get_abi_name >>= fun target_abi ->
+  Rresult.R.error_to_msg ~pp_error:Fmt.string
+    (Lazy.force Dkml_c_probe.C_abi.V2.get_abi_name)
+  >>= fun target_abi ->
   let cache_keys = [ dkmlversion ] in
   (* FIRST, set DKML_TARGET_ABI, which may be overridden by DKML_TARGET_PLATFORM_OVERRIDE *)
   let target_abi =
