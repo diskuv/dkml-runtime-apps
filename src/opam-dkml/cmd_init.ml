@@ -58,7 +58,7 @@ let run f_setup localdir_fp_opt buildtype yes non_system_compiler =
            Ok Fpath.(msys2_dir / "usr" / "bin" / "env.exe"))
       >>= fun env_exe ->
       (* Find target ABI *)
-      Lazy.force Dkml_c_probe.C_abi.V2.get_platform_name >>= fun target_abi ->
+      Lazy.force Dkml_c_probe.C_abi.V2.get_abi_name >>= fun target_abi ->
       (* Figure out OPAMHOME containing bin/opam *)
       OS.Cmd.get_tool (Cmd.v "opam") >>= fun opam_fp ->
       let opam_bin1_fp, _ = Fpath.split_base opam_fp in
