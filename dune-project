@@ -13,10 +13,17 @@
 (bug_reports "https://github.com/diskuv/dkml-runtime-apps/issues")
 
 (package
+ (name dkml-envlib)
+ (synopsis "Library to access Diskuv OCaml environment")
+ (depends
+  (ocaml (>= 4.12.1))))
+
+(package
  (name dkml-runtime)
  (synopsis "Runtime scripts used by CLI applications and Opam plugins in a Diskuv OCaml installation")
  (depends
   (ocaml (>= 4.12.1))
+  (dkml-envlib  (= :version))
   (astring      (>= 0.8.5))
   (bos          (>= 0.2.0))
   (sexplib      (>= 0.14.0))

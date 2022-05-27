@@ -1,6 +1,11 @@
+(* Use light-weight dependencies *)
+module Bos = Dkml_envlib.Envlib_dependencies_lite.Bos
+module Rresult = Dkml_envlib.Envlib_dependencies_lite.Rresult
+module Fpath = Dkml_envlib.Envlib_dependencies_lite.Fpath
+module Envlib = Dkml_envlib.Make (Dkml_envlib.Envlib_dependencies_lite)
+
 open Bos
 open Rresult
-open Dkml_runtime
 
 let fpath_notnull f = Fpath.compare OS.File.null f <> 0
 
@@ -25,10 +30,10 @@ let get_opam_root =
           fpath_notnull xdgconfighome,
           fpath_notnull home )
       with
-      | true, _, _, _ -> R.ok opamroot
-      | false, true, _, _ -> R.ok Fpath.(localappdata / "opam")
-      | false, false, true, _ -> R.ok Fpath.(xdgconfighome / "opam")
-      | false, false, false, true -> R.ok Fpath.(home / ".config" / "opam")
+      | true, _, _, _ -> Ok opamroot
+      | false, true, _, _ -> Ok Fpath.(localappdata / "opam")
+      | false, false, true, _ -> Ok Fpath.(xdgconfighome / "opam")
+      | false, false, false, true -> Ok Fpath.(home / ".config" / "opam")
       | false, false, false, false ->
           R.error_msg
             "Unable to locate Opam root because none of LOCALAPPDATA, \
@@ -39,7 +44,7 @@ let get_opam_root =
     with a fallback to <OPAMROOT>/default is used instead. *)
 let get_opam_switch_prefix =
   lazy
-    ( Lazy.force get_dkmlhome_dir_opt >>= fun dkmlhome_dir_opt ->
+    ( Lazy.force Envlib.get_dkmlhome_dir_opt >>= fun dkmlhome_dir_opt ->
       Lazy.force get_opam_root >>= fun opamroot ->
       OS.Env.parse "OPAM_SWITCH_PREFIX" OS.Env.path ~absent:OS.File.null
       >>| fun opamswitchprefix ->

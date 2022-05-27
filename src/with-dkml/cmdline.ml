@@ -1,3 +1,9 @@
+(* Use light-weight dependencies *)
+
+module Fpath = Dkml_envlib.Envlib_dependencies_lite.Fpath
+module Bos = Dkml_envlib.Envlib_dependencies_lite.Bos
+module Envlib = Dkml_envlib.Make (Dkml_envlib.Envlib_dependencies_lite)
+
 open Bos
 open Astring
 
@@ -73,7 +79,7 @@ let create_and_setenv_if_necessary () =
   let ( let+ ) = Rresult.R.( >>| ) in
   let* slash = Fpath.of_string "/" in
   let* env_exe =
-    let* x = Lazy.force Dkml_runtime.get_msys2_dir_opt in
+    let* x = Lazy.force Envlib.get_msys2_dir_opt in
     match x with
     | None -> Ok Fpath.(slash / "usr" / "bin" / "env")
     | Some msys2_dir ->
@@ -103,7 +109,6 @@ let create_and_setenv_if_necessary () =
         let* () = if is_dune abs_cmd_p then set_dune_env () else Ok () in
         Ok ([ Fpath.to_string env_exe; Fpath.to_string exe ] @ args)
     | _ ->
-        Rresult.R.error_msgf "You need to supply a command, like `%s bash`"
-          OS.Arg.exec
+        Rresult.R.error_msgf "You need to supply a command, like `with-dkml bash`"          
   in
   Cmd.of_list cmd_and_args

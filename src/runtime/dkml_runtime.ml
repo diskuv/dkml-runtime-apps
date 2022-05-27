@@ -1,6 +1,13 @@
+module Envlib = Dkml_envlib.Make (struct 
+  module Sexplib = Sexplib
+  module Rresult = Rresult
+  module Fpath = Fpath
+  module Bos = Bos
+end)
 open Bos
 open Astring
-include Dkml_context
+
+include Envlib
 include Dkml_root
 module Dkml_scripts = Scripts
 module Dkml_environment = Dkml_environment

@@ -1,7 +1,7 @@
 (library
  (name dkml_runtime)
  (public_name dkml-runtime)
- (libraries bos astring sexplib dkml-c-probe))
+ (libraries dkml-envlib bos astring sexplib dkml-c-probe))
 
 (rule
  (target scripts.ml)

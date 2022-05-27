@@ -1,0 +1,9 @@
+(library
+ (name dkml_envlib)
+ (public_name dkml-envlib)
+ ; Unlike [ocaml-containers] we don't `-open CCMonomorphic` which is unnecessary
+ ; in OCaml 4.07+
+ (flags :standard -warn-error -a+8 -w -32-70 -safe-string
+        -strict-sequence -nolabels))
+
+(ocamllex (modules CCSexp_lex))

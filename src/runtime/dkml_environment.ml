@@ -1,5 +1,11 @@
+module Envlib = Dkml_envlib.Make (struct 
+  module Sexplib = Sexplib
+  module Rresult = Rresult
+  module Fpath = Fpath
+  module Bos = Bos
+end)
+
 open Rresult
-open Dkml_context
 open Bos
 open Astring
 
@@ -35,7 +41,7 @@ let prune_path_of_msys2 prefix =
     Any existing MSYS2 binaries in the PATH will be removed.
   *)
 let set_msys2_entries ~minimize_sideeffects target_platform_name =
-  Lazy.force get_msys2_dir_opt >>= function
+  Lazy.force Envlib.get_msys2_dir_opt >>= function
   | None -> R.ok ()
   | Some msys2_dir ->
       (* See https://www.msys2.org/docs/environments/ for the magic values.

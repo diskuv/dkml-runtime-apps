@@ -18,8 +18,8 @@ open Rresult
 open Astring
 open Sexplib
 open Opam_context
-open Dkml_runtime
-open Dkml_runtime.Dkml_environment
+(* open Dkml_runtime
+open Dkml_runtime.Dkml_environment *)
 
 let usage_msg = "with-dkml.exe CMD [ARGS...]\n"
 
