@@ -99,6 +99,8 @@ let run f_setup localdir_fp_opt buildtype yes non_system_compiler =
              Fpath.to_string localdir_fp;
              "-o";
              Fpath.to_string opam_home_fp;
+             "-m";
+             "conf-withdkml";
            ]
           @ (if non_system_compiler then []
             else [ "-v"; Fpath.to_string ocaml_home_fp ])
