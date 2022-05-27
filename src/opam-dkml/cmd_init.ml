@@ -90,7 +90,6 @@ let run f_setup localdir_fp_opt buildtype yes non_system_compiler =
         Cmd.of_list
           ([
              Fpath.to_string env_exe;
-             "DKML_FEATUREFLAG_CMAKE_PLATFORM=ON";
              "/bin/sh";
              Fpath.to_string create_switch_fp;
              "-p";
