@@ -1,18 +1,27 @@
 open Bos
 open Astring
 
-let is_with_dkml string_path =
-  let search = [ "with_dkml"; "with_dkml.exe"; "with-dkml"; "with-dkml.exe" ] in
-  match Fpath.of_string string_path with
+let is_basename_of_filename_in_search_list ~search_list filename =
+  match Fpath.of_string filename with
   | Ok argv0_p ->
       let n = Fpath.filename argv0_p in
-      List.mem n search
+      List.mem n search_list
   | Error _ -> false
 
-let is_dune path =
-  let search = [ "dune"; "dune.exe" ] in
+let is_with_dkml_exe filename =
+  let search_list =
+    [ "with_dkml"; "with_dkml.exe"; "with-dkml"; "with-dkml.exe" ]
+  in
+  is_basename_of_filename_in_search_list ~search_list filename
+
+let is_dune_exe path =
+  let search_list = [ "dune"; "dune.exe" ] in
   let n = Fpath.filename path in
-  List.mem n search
+  List.mem n search_list
+
+let is_opam_exe filename =
+  let search_list = [ "opam"; "opam.exe" ] in
+  is_basename_of_filename_in_search_list ~search_list filename
 
 let set_dune_env () =
   let ( let* ) = Rresult.R.( >>= ) in
@@ -45,7 +54,8 @@ let set_dune_env () =
       Ok ()
 
 (** Create a command line like [let cmdline_a = [".../usr/bin/env.exe"; Args.others]]
-    or [let cmdline_b = [".../usr/bin/env.exe"; "XYZ-real.exe"; Args.others]].
+    or [let cmdline_b = ["XYZ-real.exe"; Args.others]]
+    or [let cmdline_c = [".../usr/bin/env.exe"; "XYZ-real.exe"; Args.others]].
 
     We use env.exe because it has logic to check if CMD is a shell
     script and run it accordingly (MSYS2 always uses bash for some reason, instead
@@ -55,7 +65,14 @@ let set_dune_env () =
     If the current executable is named ["with-dkml"] or ["with_dkml"], then
     the [cmdline_a] form of the command line is run.
 
-    Otherwise the [cmdline_b] command line is chosen, where the current
+    If the current executable is named ["opam"] and the first argument
+    is ["env"], then the [cmdline_b] form of the command line is run.
+    "opam env" probes the parent process ({!OpamSys.windows_get_shell})
+    to discover if the user needs PowerShell, Unix or Command Prompt syntax;
+    by not inserting [".../usr/bin/env.exe"] we don't fool Opam into thinking
+    we want Unix syntax.
+
+    Otherwise the [cmdline_c] command line is chosen, where the current
     executable is named ["XYZ.exe"]. If you distribute binaries all you
     need to do is rename ["dune.exe"] to ["dune-real.exe"] and
     ["with-dkml.exe"] to ["dune.exe"], and the new ["dune.exe"] will behave
@@ -86,22 +103,43 @@ let create_and_setenv_if_necessary () =
     let+ real_exe_p = OS.Cmd.get_tool (Cmd.v (Fpath.to_string real_p)) in
     real_exe_p
   in
+  let get_abs_cmd_and_real_exe cmd =
+    Logs.debug (fun l -> l "Desired command is named: %s" cmd);
+    (* If the command is not absolute like "dune", then we need to find
+       the absolute location of it. *)
+    let* abs_cmd_p = OS.Cmd.get_tool (Cmd.v cmd) in
+    Logs.debug (fun l -> l "Absolute command path is: %a" Fpath.pp abs_cmd_p);
+    let before_ext, ext = Fpath.split_ext abs_cmd_p in
+    let cmd_no_ext_p = if ext = ".exe" then before_ext else abs_cmd_p in
+    let+ real_exe = get_real_exe cmd_no_ext_p in
+    (abs_cmd_p, real_exe)
+  in
   let+ cmd_and_args =
     match Array.to_list Sys.argv with
-    | cmd :: args when is_with_dkml cmd ->
+    (* cmdline_a form *)
+    | cmd :: args when is_with_dkml_exe cmd ->
         Ok ([ Fpath.to_string env_exe ] @ args)
-    | cmd :: args ->
-        Logs.debug (fun l -> l "Desired command is named: %s" cmd);
-        (* If the command is not absolute like "dune", then we need to find
-           the absolute location of it. *)
-        let* abs_cmd_p = OS.Cmd.get_tool (Cmd.v cmd) in
+    (* cmdline_b form *)
+    | cmd :: "env" :: args when is_opam_exe cmd ->
         Logs.debug (fun l ->
-            l "Absolute command path is: %a" Fpath.pp abs_cmd_p);
-        let before_ext, ext = Fpath.split_ext abs_cmd_p in
-        let cmd_no_ext_p = if ext = ".exe" then before_ext else abs_cmd_p in
-        let* exe = get_real_exe cmd_no_ext_p in
-        let* () = if is_dune abs_cmd_p then set_dune_env () else Ok () in
-        Ok ([ Fpath.to_string env_exe; Fpath.to_string exe ] @ args)
+            l
+              "Detected [opam env] invocation. Not using 'env opam env' so \
+               Opam can discover the parent shell");
+        let* _abs_cmd_p, real_exe = get_abs_cmd_and_real_exe cmd in
+        Ok ([ Fpath.to_string real_exe; "env" ] @ args)
+    (* cmdline_c form *)
+    | cmd :: args ->
+        let* abs_cmd_p, real_exe = get_abs_cmd_and_real_exe cmd in
+        let* () =
+          if is_dune_exe abs_cmd_p then (
+            Logs.debug (fun l ->
+                l
+                  "Detected [dune] invocation. Setting Dune environment to \
+                   allow 'dune build --watch'");
+            set_dune_env ())
+          else Ok ()
+        in
+        Ok ([ Fpath.to_string env_exe; Fpath.to_string real_exe ] @ args)
     | _ ->
         Rresult.R.error_msgf "You need to supply a command, like `%s bash`"
           OS.Arg.exec
