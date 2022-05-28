@@ -65,9 +65,13 @@ let set_dune_env () =
     If the current executable is named ["with-dkml"] or ["with_dkml"], then
     the [cmdline_a] form of the command line is run.
 
-    If the current executable is named ["opam"] and the first argument
-    is ["env"], then the [cmdline_b] form of the command line is run.
-    "opam env" probes the parent process ({!OpamSys.windows_get_shell})
+    If the current executable is named ["opam"] and the arguments are of form:
+    * [["env"; ...]]
+    * [["switch"]]
+    * [["switch"; "--some-option"; ...]]
+    * [["switch"; "list"; ...]]
+    then the [cmdline_b] form of the command line is run.
+    Opam will probe the parent process ({!OpamSys.windows_get_shell})
     to discover if the user needs PowerShell, Unix or Command Prompt syntax;
     by not inserting [".../usr/bin/env.exe"] we don't fool Opam into thinking
     we want Unix syntax.
@@ -116,18 +120,42 @@ let create_and_setenv_if_necessary () =
   in
   let+ cmd_and_args =
     match Array.to_list Sys.argv with
-    (* cmdline_a form *)
+    (* CMDLINE_A FORM *)
     | cmd :: args when is_with_dkml_exe cmd ->
         Ok ([ Fpath.to_string env_exe ] @ args)
-    (* cmdline_b form *)
+    (* CMDLINE_B FORM *)
     | cmd :: "env" :: args when is_opam_exe cmd ->
         Logs.debug (fun l ->
             l
-              "Detected [opam env] invocation. Not using 'env opam env' so \
+              "Detected [opam env ...] invocation. Not using 'env opam env' so \
                Opam can discover the parent shell");
         let* _abs_cmd_p, real_exe = get_abs_cmd_and_real_exe cmd in
         Ok ([ Fpath.to_string real_exe; "env" ] @ args)
-    (* cmdline_c form *)
+    | [ cmd; "switch" ] when is_opam_exe cmd ->
+        Logs.debug (fun l ->
+            l
+              "Detected [opam switch] invocation. Not using 'env opam switch' \
+               so Opam can discover the parent shell");
+        let* _abs_cmd_p, real_exe = get_abs_cmd_and_real_exe cmd in
+        Ok [ Fpath.to_string real_exe; "switch" ]
+    | cmd :: "switch" :: first_arg :: rest_args
+      when is_opam_exe cmd
+           && String.length first_arg > 2
+           && String.is_prefix ~affix:"--" first_arg ->
+        Logs.debug (fun l ->
+            l
+              "Detected [opam switch --some-option ...] invocation. Not using \
+               'env opam switch' so Opam can discover the parent shell");
+        let* _abs_cmd_p, real_exe = get_abs_cmd_and_real_exe cmd in
+        Ok ([ Fpath.to_string real_exe; "switch"; first_arg ] @ rest_args)
+    | cmd :: "switch" :: "list" :: args when is_opam_exe cmd ->
+        Logs.debug (fun l ->
+            l
+              "Detected [opam switch list ...] invocation. Not using 'env opam switch' \
+               so Opam can discover the parent shell");
+        let* _abs_cmd_p, real_exe = get_abs_cmd_and_real_exe cmd in
+        Ok ([ Fpath.to_string real_exe; "switch"; "list" ] @ args)
+    (* CMDLINE_C FORM *)
     | cmd :: args ->
         let* abs_cmd_p, real_exe = get_abs_cmd_and_real_exe cmd in
         let* () =
