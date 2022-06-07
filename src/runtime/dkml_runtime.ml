@@ -28,7 +28,7 @@ let extract_dkml_scripts dir_fp =
           (* cp script filename *)
           let script_opt = Dkml_scripts.read filename in
           Option.fold ~none:(Result.Ok ())
-            ~some:(fun script -> OS.File.write target_fp script)
+            ~some:(fun script -> OS.File.write ~mode:0x755 target_fp script)
             script_opt
       | Error _ as err -> err)
     (Result.Ok ()) Dkml_scripts.file_list
