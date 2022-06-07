@@ -71,7 +71,7 @@ let run f_setup localdir_fp_opt buildtype yes non_system_compiler =
       >>= fun () ->
       let opam_home_fp, _ = Fpath.split_base opam_bin1_fp in
       (* Figure out OCAMLHOME containing usr/bin/ocaml or bin/ocaml *)
-      OS.Cmd.get_tool (Cmd.v "ocaml") >>= fun ocaml_fp ->
+      OS.Cmd.get_tool (Cmd.v "ocamlc") >>= fun ocaml_fp ->
       let ocaml_bin1_fp, _ = Fpath.split_base ocaml_fp in
       (if "bin" = Fpath.basename ocaml_bin1_fp then Ok ()
       else
