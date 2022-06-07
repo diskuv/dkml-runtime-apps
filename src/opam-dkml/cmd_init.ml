@@ -44,6 +44,7 @@ let run f_setup localdir_fp_opt buildtype yes non_system_compiler =
   OS.Dir.with_tmp "dkml-scripts-%s"
     (fun dir_fp () ->
       let scripts_dir_fp = Fpath.(dir_fp // v "scripts") in
+      let top_dir_fp = Fpath.(dir_fp // v "topdir") in
       (* Extract all DKML scripts into scripts_dir_fp *)
       extract_dkml_scripts scripts_dir_fp >>= fun () ->
       (* Get local directory *)
@@ -70,7 +71,7 @@ let run f_setup localdir_fp_opt buildtype yes non_system_compiler =
           opam_fp)
       >>= fun () ->
       let opam_home_fp, _ = Fpath.split_base opam_bin1_fp in
-      (* Figure out OCAMLHOME containing usr/bin/ocaml or bin/ocaml *)
+      (* Figure out OCAMLHOME containing usr/bin/ocamlc or bin/ocamlc *)
       OS.Cmd.get_tool (Cmd.v "ocamlc") >>= fun ocaml_fp ->
       let ocaml_bin1_fp, _ = Fpath.split_base ocaml_fp in
       (if "bin" = Fpath.basename ocaml_bin1_fp then Ok ()
@@ -84,6 +85,9 @@ let run f_setup localdir_fp_opt buildtype yes non_system_compiler =
         if "usr" = Fpath.basename ocaml_bin2_fp then ocaml_bin3_fp
         else ocaml_bin2_fp
       in
+      (* Set TOPDIR environment variable (why do we still need this?) *)
+      OS.Dir.create top_dir_fp >>= fun _existed ->
+      OS.Env.set_var "TOPDIR" (Some (Fpath.to_string top_dir_fp)) >>= fun () ->
       (* Assemble command line arguments *)
       Fpath.of_string "vendor/drd/src/unix/create-opam-switch.sh"
       >>= fun rel_fp ->
@@ -96,7 +100,7 @@ let run f_setup localdir_fp_opt buildtype yes non_system_compiler =
              Fpath.to_string create_switch_fp;
              "-p";
              target_abi;
-             "-d";
+             "-t";
              Fpath.to_string localdir_fp;
              "-o";
              Fpath.to_string opam_home_fp;
