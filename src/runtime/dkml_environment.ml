@@ -64,6 +64,18 @@ let set_msys2_entries ~minimize_sideeffects target_platform_name =
       OS.Env.set_var "MSYSTEM_CARCH" (Some carch) >>= fun () ->
       OS.Env.set_var "MSYSTEM_CHOST" (Some chost) >>= fun () ->
       OS.Env.set_var "MSYSTEM_PREFIX" (Some ("/" ^ prefix)) >>= fun () ->
+      (* 2. Fix the MSYS2 ambiguity problem described at https://github.com/msys2/MSYS2-packages/issues/2316.
+          Our error is running:
+            cl -nologo -O2 -Gy- -MD -Feocamlrun.exe prims.obj libcamlrun.lib advapi32.lib ws2_32.lib version.lib /link /subsystem:console /ENTRY:wmainCRTStartup
+          would warn
+            cl : Command line warning D9002 : ignoring unknown option '/subsystem:console'
+            cl : Command line warning D9002 : ignoring unknown option '/ENTRY:wmainCRTStartup'
+          because the slashes (/) could mean Windows paths or Windows options. We force the latter.
+
+          This is described in Automatic Unix ⟶ Windows Path Conversion
+          at https://www.msys2.org/docs/filesystem-paths/
+      *)
+      OS.Env.set_var "MSYS2_ARG_CONV_EXCL" (Some "*") >>= fun () ->
       (* 3. Remove MSYS2 entries, if any, from PATH
             _unless_ we are minimizing side-effects *)
       (if minimize_sideeffects then Ok () else prune_path_of_msys2 prefix)
