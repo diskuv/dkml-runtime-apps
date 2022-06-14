@@ -119,7 +119,64 @@ let remove_microsoft_visual_studio_entries () =
   (* 3. Remove MSVC entries from PATH *)
   prune_path_of_microsoft_visual_studio ()
 
-(* [add_microsoft_visual_studio_entries ()] updates the environment to include
+(** [set_tempvar_entries] sets TMPDIR on Unix or TEMP on Windows if they need re-adjusting.
+
+  {1 OCaml temporary files}
+
+  When executing an `ocamlc -pp` preprocessor command like
+  https://github.com/ocaml/ocaml/blob/77b164c65e7bc8625d0bd79542781952afdd2373/stdlib/Compflags#L18-L20
+  (invoked by https://github.com/ocaml/ocaml/blob/77b164c65e7bc8625d0bd79542781952afdd2373/stdlib/Makefile#L201),
+  `ocamlc` will use a temporary directory TMPDIR to hold
+  the preprocessor output. However for MSYS2 you can get
+  a TMPDIR with a space that OCaml 4.12.1 will choke on:
+  * `C:\Users\person 1\AppData\Local\Programs\DiskuvOCaml\tools\MSYS2\tmp\ocamlpp87171a`
+  * https://gitlab.com/diskuv/diskuv-ocaml/-/issues/13#note_987989664
+
+  Root cause:
+  https://github.com/ocaml/ocaml/blob/cce52acc7c7903e92078e9fe40745e11a1b944f0/driver/pparse.ml#L27-L29
+
+  Mitigation:
+  > Filename.get_temp_dir_name (https://v2.ocaml.org/api/Filename.html#VALget_temp_dir_name) uses
+  > TMPDIR on Unix and TEMP on Windows
+  * Make OCaml's temporary directory be the WORK directory
+  * Set it to a DOS 8.3 short path like
+  `C:\Users\PERSON~1\AppData\Local\Programs\DISKUV~1\...\tmp` on Windows.
+
+  {1 MSVC temporary files}
+
+  TMP must be set or you get
+  https://docs.microsoft.com/en-us/cpp/error-messages/tool-errors/command-line-error-d8037?view=msvc-170
+
+  *)
+let set_tempvar_entries cache_keys =
+  Lazy.force get_msys2_dir_opt >>= function
+  | None -> (
+    R.ok ("" :: "" :: cache_keys)
+  )
+  | Some msys2_dir -> (
+    (* On Windows both TEMP and TMP should be set. But since OCaml requires "TEMP" we make
+       sure it is set *)
+    match OS.Env.var "TEMP", OS.Env.var "TMP" with
+    | Some temp, Some tmp ->
+      R.ok (temp :: tmp :: cache_keys)
+    | Some temp, None ->
+      R.ok (temp :: "" :: cache_keys)
+    | None, Some tmp ->
+      (* DOS 8.3 paths can't be printed unless they exist first *)
+      OS.Dir.create (Fpath.v tmp) >>= fun already_existed ->
+      (* Use cygpath to get DOS 8.3 path *)
+      let cygpath =
+        Fpath.(msys2_dir / "usr" / "bin" / "cygpath.exe" |> to_string)
+      in
+      let cmd = Cmd.(v cygpath % "-ad" % tmp) in
+      OS.Cmd.run_out cmd |> OS.Cmd.to_string >>= fun dos83path ->
+      (* Set the TEMP (required for OCaml) and the TMP (required for MSVC) to DOS 8.3 *)
+      OS.Env.set_var "TEMP" dos83path >>= fun () ->
+      OS.Env.set_var "TMP" dos83path >>= fun () ->
+      R.ok (dos83path :: dos83path :: cache_keys)
+  )
+
+(** [add_microsoft_visual_studio_entries ()] updates the environment to include
    Microsoft Visual Studio entries like LIB, INCLUDE and the others listed in
    [msvc_as_is_vars] and in [autodetect_compiler_as_is_vars]. Additionally PATH is updated.
 
@@ -471,15 +528,18 @@ let main_with_result () =
   let* () =
     if minimize_sideeffects then Ok ()
     else
-      (* THIRD, set MSVC entries *)
+      (* THIRD, set temporary variables *)
+      set_tempvar_entries cache_keys >>= fun cache_keys ->
+      (* FOURTH, set MSVC entries.
+         Since MSVC requires temporary variables, we do this after temp vars *)
       set_msvc_entries cache_keys >>= fun cache_keys ->
-      (* FOURTH, set third-party (3p) prefix entries.
+      (* FIFTH, set third-party (3p) prefix entries.
          Since MSVC overwrites INCLUDE and LIB entirely, we have to do vcpkg entries
          _after_ MSVC. *)
       set_3p_prefix_entries cache_keys >>= fun cache_keys ->
-      (* FIFTH, set third-party (3p) program entries. *)
+      (* SIXTH, set third-party (3p) program entries. *)
       set_3p_program_entries cache_keys >>= fun _cache_keys ->
-      (* SIXTH, stop tracing variables from propagating. *)
+      (* SEVENTH, stop tracing variables from propagating. *)
       OS.Env.set_var "DKML_BUILD_TRACE" None >>= fun () ->
       OS.Env.set_var "DKML_BUILD_TRACE_LEVEL" None
   in
