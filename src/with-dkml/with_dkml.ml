@@ -119,6 +119,31 @@ let remove_microsoft_visual_studio_entries () =
   (* 3. Remove MSVC entries from PATH *)
   prune_path_of_microsoft_visual_studio ()
 
+(** [get_dos83_short_path p] gets the DOS 8.3 short form of the path [p],
+    if the DOS 8.3 short form exists. 
+      
+    https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/fsutil-8dot3name
+    controls whether DOS 8.3 short forms exist on a drive ("volume").
+
+    https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/fsutil-file
+    can set a short name on a file (or directory), even if the 8dot3name policy
+    has been removed. However this method does not set short names automatically.
+
+    The short form is only available for directories and files that are already
+    created.
+    *)
+let get_dos83_short_path pth =
+  let ( let* ) = Result.bind in
+  let* cmd_exe = OS.Env.req_var "COMSPEC" in
+  (* DOS variable expansion prints the short 8.3 style file name. *)
+  OS.Cmd.run_out
+    Cmd.(
+      v cmd_exe % "/C" % "for" % "%i" % "in" % "("
+      (* Fpath, as desired, prints out in Windows (long) format *)
+      % Fpath.to_string pth
+      % ")" % "do" % "@echo" % "%~si")
+  |> OS.Cmd.to_string ~trim:true
+
 (** [set_tempvar_entries] sets TMPDIR on Unix or TEMP on Windows if they need re-adjusting.
 
   {1 OCaml temporary files}
@@ -149,32 +174,40 @@ let remove_microsoft_visual_studio_entries () =
 
   *)
 let set_tempvar_entries cache_keys =
+  let set_windows_tmp ~msys2_dir tmpdir =
+    (* DOS 8.3 paths can't be printed unless they exist first *)
+    OS.Dir.create tmpdir >>= fun _already_existed ->
+    (* Use cygpath to get DOS 8.3 path *)
+    (* let cygpath =
+      Fpath.(msys2_dir / "usr" / "bin" / "cygpath.exe" |> to_string)
+    in
+    let cmd = Cmd.(v cygpath % "-ad" % Fpath.to_string tmpdir) in
+    OS.Cmd.run_out cmd |> OS.Cmd.to_string >>= fun dos83path -> *)
+    get_dos83_short_path tmpdir >>= fun dos83path ->
+    Logs.debug (fun l -> l "Windows: DOS 8.3 var = %s" dos83path);
+    (* Set the TEMP (required for OCaml) and the TMP (required for MSVC) to DOS 8.3 *)
+    OS.Env.set_var "TEMP" (Some dos83path) >>= fun () ->
+    OS.Env.set_var "TMP" (Some dos83path) >>= fun () ->
+    R.ok (dos83path :: dos83path :: cache_keys)
+  in
   Lazy.force get_msys2_dir_opt >>= function
-  | None -> (
-    R.ok ("" :: "" :: cache_keys)
-  )
+  | None ->
+      (* On UNIX do not adjust any paths. *)
+      R.ok ("" :: "" :: cache_keys)
   | Some msys2_dir -> (
-    (* On Windows both TEMP and TMP should be set. But since OCaml requires "TEMP" we make
-       sure it is set *)
-    match OS.Env.var "TEMP", OS.Env.var "TMP" with
-    | Some temp, Some tmp ->
-      R.ok (temp :: tmp :: cache_keys)
-    | Some temp, None ->
-      R.ok (temp :: "" :: cache_keys)
-    | None, Some tmp ->
-      (* DOS 8.3 paths can't be printed unless they exist first *)
-      OS.Dir.create (Fpath.v tmp) >>= fun already_existed ->
-      (* Use cygpath to get DOS 8.3 path *)
-      let cygpath =
-        Fpath.(msys2_dir / "usr" / "bin" / "cygpath.exe" |> to_string)
-      in
-      let cmd = Cmd.(v cygpath % "-ad" % tmp) in
-      OS.Cmd.run_out cmd |> OS.Cmd.to_string >>= fun dos83path ->
-      (* Set the TEMP (required for OCaml) and the TMP (required for MSVC) to DOS 8.3 *)
-      OS.Env.set_var "TEMP" dos83path >>= fun () ->
-      OS.Env.set_var "TMP" dos83path >>= fun () ->
-      R.ok (dos83path :: dos83path :: cache_keys)
-  )
+      (* On Windows both TEMP and TMP should be set. If not we can use
+         MSYS2 /tmp *)
+      match (OS.Env.var "TEMP", OS.Env.var "TMP") with
+      | Some temp, None | Some temp, Some _ ->
+          Logs.debug (fun l -> l "Windows: 1. Adjusting temp variables");
+          set_windows_tmp ~msys2_dir (Fpath.v temp)
+      | None, Some tmp ->
+          Logs.debug (fun l -> l "Windows: 2. Adjusting temp variables");
+          set_windows_tmp ~msys2_dir (Fpath.v tmp)
+      | None, None ->
+          Logs.debug (fun l -> l "Windows: 3. Adjusting temp variables");
+          (* Use MSYS2 /tmp dir as a default *)
+          set_windows_tmp ~msys2_dir Fpath.(msys2_dir / "tmp"))
 
 (** [add_microsoft_visual_studio_entries ()] updates the environment to include
    Microsoft Visual Studio entries like LIB, INCLUDE and the others listed in
@@ -202,16 +235,16 @@ let set_msvc_entries cache_keys =
             if varname = "PATH_COMPILER" then (
               OS.Env.set_var "PATH" (Some (varvalue ^ ";" ^ path))
               |> Rresult.R.error_msg_to_invalid_arg;
-              Logs.debug (fun m ->
-                  m
+              Logs.debug (fun l ->
+                  l
                     "Prepending PATH_COMPILER to PATH. (prefix <|> existing) = \
                      (%s <|> %s)"
                     varvalue path))
             else (
               OS.Env.set_var varname (Some varvalue)
               |> Rresult.R.error_msg_to_invalid_arg;
-              Logs.debug (fun m ->
-                  m "Setting (name,value) = (%s,%s)" varname varvalue)))
+              Logs.debug (fun l ->
+                  l "Setting (name,value) = (%s,%s)" varname varvalue)))
           (association_list_of_sexp setvars)
       in
       Lazy.force get_opam_switch_prefix >>= fun opam_switch_prefix ->
@@ -234,8 +267,8 @@ let set_msvc_entries cache_keys =
       OS.File.exists cache_file >>= fun cache_hit ->
       if cache_hit then (
         (* Cache hit *)
-        Logs.info (fun m ->
-            m "Loading compiler cache entry %a" Fpath.pp cache_file);
+        Logs.info (fun l ->
+            l "Loading compiler cache entry %a" Fpath.pp cache_file);
         let setvars = Sexp.load_sexp (Fpath.to_string cache_file) in
         do_set setvars;
         Ok cache_keys)
@@ -277,8 +310,8 @@ let set_msvc_entries cache_keys =
               (Fpath.to_string tmp_sexp_file)
               association_list_of_sexp
           in
-          Logs.debug (fun m ->
-              m "autodetect_compiler output vars:@\n%a"
+          Logs.debug (fun l ->
+              l "autodetect_compiler output vars:@\n%a"
                 Fmt.(list (Dump.pair string string))
                 env_vars);
 
@@ -302,8 +335,8 @@ let set_msvc_entries cache_keys =
 
             (* Save the cache miss so it is a cache hit next time *)
             OS.Dir.create cache_dir >>= fun _already_exists ->
-            Logs.info (fun m ->
-                m "Saving compiler cache entry %a" Fpath.pp cache_file);
+            Logs.info (fun l ->
+                l "Saving compiler cache entry %a" Fpath.pp cache_file);
 
             Sexp.save_hum (Fpath.to_string cache_file) setvars;
             Ok cache_keys
@@ -427,15 +460,15 @@ let set_3p_prefix_entries cache_keys =
           in
           prune_entries f >>= fun () ->
           (* 2. Add DKML_3P_PREFIX_PATH directories to front of INCLUDE,LIB,...,PKG_CONFIG_PATH and PATH *)
-          Logs.debug (fun m ->
-              m "third-party prefix directory = %a" Fpath.pp threep);
+          Logs.debug (fun l ->
+              l "third-party prefix directory = %a" Fpath.pp threep);
           prepend_entries ~tools:false threep >>= fun () -> helper rst
   in
   let dirs =
     String.cuts ~empty:false ~sep:";"
       (OS.Env.opt_var ~absent:"" "DKML_3P_PREFIX_PATH")
   in
-  Logs.debug (fun m -> m "DKML_3P_PREFIX_PATH = @[%a@]" Fmt.(list string) dirs);
+  Logs.debug (fun l -> l "DKML_3P_PREFIX_PATH = @[%a@]" Fmt.(list string) dirs);
   helper (List.rev dirs) >>| fun () -> String.concat ~sep:";" dirs :: cache_keys
 
 (* [set_3p_program_entries cache_keys] will modify the PATH so that each directory in
@@ -460,8 +493,8 @@ let set_3p_program_entries cache_keys =
             else not Fpath.(equal threep (R.get_ok fp))
           in
           prune_envvar ~f ~path_sep:os_path_sep "PATH" >>= fun () ->
-          Logs.debug (fun m ->
-              m "third-party program directory = %a" Fpath.pp threep);
+          Logs.debug (fun l ->
+              l "third-party program directory = %a" Fpath.pp threep);
           OS.Env.parse "PATH" OS.Env.(some string) ~absent:None
           >>= prepend_envvar ~path_sep:os_path_sep "PATH"
                 (Fpath.to_string threep)
@@ -471,7 +504,7 @@ let set_3p_program_entries cache_keys =
     String.cuts ~empty:false ~sep:";"
       (OS.Env.opt_var ~absent:"" "DKML_3P_PROGRAM_PATH")
   in
-  Logs.debug (fun m -> m "DKML_3P_PROGRAM_PATH = @[%a@]" Fmt.(list string) dirs);
+  Logs.debug (fun l -> l "DKML_3P_PROGRAM_PATH = @[%a@]" Fmt.(list string) dirs);
   helper (List.rev dirs) >>| fun () -> String.concat ~sep:";" dirs :: cache_keys
 
 let main_with_result () =
@@ -550,15 +583,15 @@ let main_with_result () =
   (* Diagnostics *)
   OS.Env.current () >>= fun current_env ->
   OS.Dir.current () >>= fun current_dir ->
-  Logs.debug (fun m ->
-      m "Environment:@\n%a" Astring.String.Map.dump_string_map current_env);
-  Logs.debug (fun m -> m "Current directory: %a" Fpath.pp current_dir);
+  Logs.debug (fun l ->
+      l "Environment:@\n%a" Astring.String.Map.dump_string_map current_env);
+  Logs.debug (fun l -> l "Current directory: %a" Fpath.pp current_dir);
   (Lazy.force get_dkmlhome_dir_opt >>| function
    | None -> ()
    | Some dkmlhome_dir ->
-       Logs.debug (fun m -> m "DKML home directory: %a" Fpath.pp dkmlhome_dir))
+       Logs.debug (fun l -> l "DKML home directory: %a" Fpath.pp dkmlhome_dir))
   >>= fun () ->
-  Logs.info (fun m -> m "Running command: %a" Cmd.pp cmd);
+  Logs.info (fun l -> l "Running command: %a" Cmd.pp cmd);
 
   (* Run the command *)
   OS.Cmd.run_status cmd >>| function
