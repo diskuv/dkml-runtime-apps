@@ -174,15 +174,15 @@ let get_dos83_short_path pth =
 
   *)
 let set_tempvar_entries cache_keys =
-  let set_windows_tmp ~msys2_dir tmpdir =
+  let set_windows_tmp tmpdir =
     (* DOS 8.3 paths can't be printed unless they exist first *)
     OS.Dir.create tmpdir >>= fun _already_existed ->
     (* Use cygpath to get DOS 8.3 path *)
     (* let cygpath =
-      Fpath.(msys2_dir / "usr" / "bin" / "cygpath.exe" |> to_string)
-    in
-    let cmd = Cmd.(v cygpath % "-ad" % Fpath.to_string tmpdir) in
-    OS.Cmd.run_out cmd |> OS.Cmd.to_string >>= fun dos83path -> *)
+         Fpath.(msys2_dir / "usr" / "bin" / "cygpath.exe" |> to_string)
+       in
+       let cmd = Cmd.(v cygpath % "-ad" % Fpath.to_string tmpdir) in
+       OS.Cmd.run_out cmd |> OS.Cmd.to_string >>= fun dos83path -> *)
     get_dos83_short_path tmpdir >>= fun dos83path ->
     Logs.debug (fun l -> l "Windows: DOS 8.3 var = %s" dos83path);
     (* Set the TEMP (required for OCaml) and the TMP (required for MSVC) to DOS 8.3 *)
@@ -200,14 +200,14 @@ let set_tempvar_entries cache_keys =
       match (OS.Env.var "TEMP", OS.Env.var "TMP") with
       | Some temp, None | Some temp, Some _ ->
           Logs.debug (fun l -> l "Windows: 1. Adjusting temp variables");
-          set_windows_tmp ~msys2_dir (Fpath.v temp)
+          set_windows_tmp (Fpath.v temp)
       | None, Some tmp ->
           Logs.debug (fun l -> l "Windows: 2. Adjusting temp variables");
-          set_windows_tmp ~msys2_dir (Fpath.v tmp)
+          set_windows_tmp (Fpath.v tmp)
       | None, None ->
           Logs.debug (fun l -> l "Windows: 3. Adjusting temp variables");
           (* Use MSYS2 /tmp dir as a default *)
-          set_windows_tmp ~msys2_dir Fpath.(msys2_dir / "tmp"))
+          set_windows_tmp Fpath.(msys2_dir / "tmp"))
 
 (** [add_microsoft_visual_studio_entries ()] updates the environment to include
    Microsoft Visual Studio entries like LIB, INCLUDE and the others listed in
