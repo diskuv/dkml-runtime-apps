@@ -30,25 +30,103 @@ let get_dkmlparenthomedir =
                 Fpath.(fp / ".local" / "share" / "diskuv-ocaml")
             | Error _ as err -> err)))
 
-(* [get_dkmlvars_opt] gets an association list of dkmlvars-v2.sexp *)
+(** [get_dkmlenv_opt] creates an association list in the format of
+    dkmlvars-v2.sexp from the environment if DiskuvOCamlVarsVersion and
+    DiskuvOCamlVersion are defined. These two environment variables are all
+    that is set for Unix in diskuv-runtime-distribution's init-opam-root.sh.
+
+    These environment values must be used during an upgrade (or else the
+    upgrade can use old installation values) or an install (where
+    dkmlvars-v2.sexp is not present) like in setup-userprofile.ps1. *)
+let get_dkmlenv_opt =
+  Lazy.from_fun (fun () ->
+      match OS.Env.(var "DiskuvOCamlVarsVersion", var "DiskuvOCamlVersion") with
+      (* Blanks are treated the same as None *)
+      | None, None | Some _, None | None, Some _ | Some "", _ | _, Some "" ->
+          Ok None
+      | Some "2", Some ver ->
+          let open Sexp in
+          let lst = [] in
+          let lst =
+            match OS.Env.var "DiskuvOCamlHome" with
+            | None | Some "" -> lst
+            | Some v -> List [ Atom "DiskuvOCamlHome"; List [ Atom v ] ] :: lst
+          in
+          let lst =
+            match OS.Env.var "DiskuvOCamlMSYS2Dir" with
+            | None | Some "" -> lst
+            | Some v ->
+                List [ Atom "DiskuvOCamlMSYS2Dir"; List [ Atom v ] ] :: lst
+          in
+          let lst =
+            match OS.Env.var "DiskuvOCamlDeploymentId" with
+            | None | Some "" -> lst
+            | Some v ->
+                List [ Atom "DiskuvOCamlDeploymentId"; List [ Atom v ] ] :: lst
+          in
+          let lst =
+            match OS.Env.var "DiskuvOCamlBinaryPaths" with
+            | None | Some "" -> lst
+            | Some v ->
+                let bpaths =
+                  Astring.String.cuts ~sep:";" v
+                  |> List.map (fun bpath -> Atom bpath)
+                in
+                List [ Atom "DiskuvOCamlBinaryPaths"; List bpaths ] :: lst
+          in
+          Ok
+            (Some
+               (List
+                  ([
+                     List [ Atom "DiskuvOCamlVarsVersion"; List [ Atom "2" ] ];
+                     List [ Atom "DiskuvOCamlVersion"; List [ Atom ver ] ];
+                   ]
+                  @ lst)))
+      | Some varsver, Some _ ->
+          R.error_msgf
+            "Only version of DiskuvOCamlVarsVersion currently supported is 2, \
+             not %s"
+            varsver)
+
+(** [get_dkmlvars_opt] gets an association list of dkmlvars-v2.sexp.
+    
+    If DiskuvOCaml* environment variables are found, those environment
+    variables are used and the file system is not accessed.
+
+    Otherwise the canonical filesystem location of dkmlvars-v2.sexp
+    is used. *)
 let get_dkmlvars_opt =
-  lazy
-    ( Lazy.force get_dkmlparenthomedir >>= fun fp ->
+  Lazy.from_fun (fun () ->
+      Lazy.force get_dkmlenv_opt >>= fun env_opt ->
+      match env_opt with
+      | Some env -> Ok (Some (association_list_of_sexp_lists env))
+      | None ->
+          Lazy.force get_dkmlparenthomedir >>= fun fp ->
       OS.File.exists Fpath.(fp / "dkmlvars-v2.sexp") >>| fun exists ->
       if exists then
         Some
           (Sexp.load_sexp_conv_exn
              Fpath.(fp / "dkmlvars-v2.sexp" |> to_string)
              association_list_of_sexp_lists)
-      else None )
+          else None)
 
-(* [get_dkmlvars] gets an association list of dkmlvars-v2.sexp *)
+(** [get_dkmlvars] gets an association list of dkmlvars-v2.sexp.
+    
+    If DiskuvOCaml* environment variables are found, those environment
+    variables are used and the file system is not accessed.
+
+    Otherwise the canonical filesystem location of dkmlvars-v2.sexp
+    is used. *)
 let get_dkmlvars =
-  lazy
-    ( Lazy.force get_dkmlparenthomedir >>| fun fp ->
+  Lazy.from_fun (fun () ->
+      Lazy.force get_dkmlenv_opt >>= fun env_opt ->
+      match env_opt with
+      | Some env -> Ok (association_list_of_sexp_lists env)
+      | None ->
+          Lazy.force get_dkmlparenthomedir >>| fun fp ->
       Sexp.load_sexp_conv_exn
         Fpath.(fp / "dkmlvars-v2.sexp" |> to_string)
-        association_list_of_sexp_lists )
+            association_list_of_sexp_lists)
 
 (* Get DKML version *)
 let get_dkmlversion =
