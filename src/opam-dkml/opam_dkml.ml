@@ -20,7 +20,8 @@ To install and test:
 open Bos
 open Rresult
 open Dkml_runtime
-open Cmdliner
+module Arg = Cmdliner.Arg
+module Term = Cmdliner.Term
 
 let setup () =
   (* Setup logging *)
@@ -36,7 +37,7 @@ let setup () =
 
   (* Setup MSYS2 *)
   Rresult.R.error_to_msg ~pp_error:Fmt.string
-    (Lazy.force Dkml_c_probe.C_abi.V2.get_abi_name)
+    (Dkml_c_probe.C_abi.V2.get_abi_name ())
   >>= fun target_platform_name ->
   Dkml_environment.set_msys2_entries ~minimize_sideeffects:false
     target_platform_name

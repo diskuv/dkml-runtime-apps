@@ -1,7 +1,7 @@
 open Bos
-open Cmdliner
 open Dkml_runtime
 open Dkml_runtime.Monadic_operators
+module Arg = Cmdliner.Arg
 
 type buildtype = Debug | Release | ReleaseCompatPerf | ReleaseCompatFuzz
 
@@ -48,7 +48,7 @@ let run f_setup localdir_fp_opt buildtype yes non_system_compiler =
       (* Extract all DKML scripts into scripts_dir_fp *)
       extract_dkml_scripts scripts_dir_fp >>= fun () ->
       (* Get local directory *)
-      Option.fold ~none:(OS.Dir.current ()) ~some:Result.ok localdir_fp_opt
+      Option.fold ~none:(OS.Dir.current ()) ~some:(fun v -> Ok v) localdir_fp_opt
       >>= fun localdir_fp ->
       (* Find env *)
       Fpath.of_string "/" >>= fun slash ->
@@ -60,7 +60,7 @@ let run f_setup localdir_fp_opt buildtype yes non_system_compiler =
       >>= fun env_exe ->
       (* Find target ABI *)
       Rresult.R.error_to_msg ~pp_error:Fmt.string
-        (Lazy.force Dkml_c_probe.C_abi.V2.get_abi_name)
+        (Dkml_c_probe.C_abi.V2.get_abi_name ())
       >>= fun target_abi ->
       (* Figure out OPAMHOME containing bin/opam *)
       OS.Cmd.get_tool (Cmd.v "opam") >>= fun opam_fp ->

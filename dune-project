@@ -21,7 +21,7 @@
   (astring      (>= 0.8.5))
   (bos          (>= 0.2.0))
   (sexplib      (>= 0.14.0))
-  (dkml-c-probe (>= 2.0.0~))))
+  (dkml-c-probe (>= 3.0.0~))))
 
 (package
  (name dkml-apps)
