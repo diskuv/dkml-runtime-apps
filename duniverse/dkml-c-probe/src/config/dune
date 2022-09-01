@@ -1,0 +1,19 @@
+(executable
+ (name create_ocaml_from_file)
+ (modules create_ocaml_from_file)
+ (libraries probe_common))
+
+(rule
+ (target dkml_compiler_probe_c_header.ml)
+ (deps
+  (:create_ml_from create_ocaml_from_file.exe)
+  (:header dkml_compiler_probe.h))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{create_ml_from} %{header}))))
+
+(executable
+ (name discover)
+ (modules discover dkml_compiler_probe_c_header)
+ (libraries dune.configurator))
