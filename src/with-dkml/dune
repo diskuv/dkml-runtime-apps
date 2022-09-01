@@ -5,4 +5,19 @@
  ; No PPX! This should compile with the bare minimum:
  ; 1. This is installed in the Diskuv OCaml system `dkml` switch; it should be lightweight
  ;    so less security surface area and less support burden
- (libraries dkml-runtimelib bos logs logs.fmt fmt fmt.tty sexplib sha))
+ ; 2. Since this can be compiled using Dune's `ocaml bootstrap.ml`, we need
+ ;    to list _all_ transitive dependencies (at least for Dune 2.9.3)
+ (libraries
+  dkml-c-probe
+  dkml-runtimelib
+  astring
+  bos
+  fmt
+  fmt.tty
+  fpath
+  logs
+  logs.fmt
+  rresult
+  sexplib
+  sexplib0
+  sha))

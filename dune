@@ -1,0 +1,4 @@
+;; Include all directories except duniverse/.
+;; When bundling as part of dune.X.Y.Z+shim, this `dune` file is removed so that
+;; duniverse/ is included.
+(dirs :standard \ duniverse)

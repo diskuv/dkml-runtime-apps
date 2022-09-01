@@ -1,4 +1,6 @@
 (library
  (name dkml_runtimelib)
  (public_name dkml-runtimelib)
- (libraries bos sexplib dkml-c-probe))
+ ; Since this can be compiled using Dune's `ocaml bootstrap.ml`, we need
+ ; to list _all_ transitive dependencies (at least for Dune 2.9.3)
+ (libraries dkml-c-probe astring bos fmt fpath rresult sexplib sexplib0))
