@@ -94,7 +94,7 @@ let create_and_setenv_if_necessary () =
   let ( let+ ) = Rresult.R.( >>| ) in
   let* slash = Fpath.of_string "/" in
   let* env_exe =
-    let* x = Lazy.force Dkml_runtime.get_msys2_dir_opt in
+    let* x = Lazy.force Dkml_runtimelib.get_msys2_dir_opt in
     match x with
     | None -> Ok Fpath.(slash / "usr" / "bin" / "env")
     | Some msys2_dir ->

@@ -1,10 +1,10 @@
 (library
- (name dkml_runtime)
- (public_name dkml-runtime)
- (libraries bos astring sexplib dkml-c-probe))
+ (name dkml_runtimescripts)
+ (public_name dkml-runtimescripts)
+ (libraries fpath rresult bos))
 
 (rule
- (target scripts.ml)
+ (target dkml_scripts.ml)
  (deps
   "%{project_root}/dkmldir/vendor/drd/src/unix/create-opam-switch.sh"
   "%{project_root}/dkmldir/vendor/dkml-compiler/src/standard-compiler-env-to-ocaml-configure-env.sh"

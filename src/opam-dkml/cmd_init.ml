@@ -1,6 +1,5 @@
 open Bos
-open Dkml_runtime
-open Dkml_runtime.Monadic_operators
+open Dkml_runtimelib.Monadic_operators
 module Arg = Cmdliner.Arg
 
 type buildtype = Debug | Release | ReleaseCompatPerf | ReleaseCompatFuzz
@@ -46,13 +45,13 @@ let run f_setup localdir_fp_opt buildtype yes non_system_compiler =
       let scripts_dir_fp = Fpath.(dir_fp // v "scripts") in
       let top_dir_fp = Fpath.(dir_fp // v "topdir") in
       (* Extract all DKML scripts into scripts_dir_fp *)
-      extract_dkml_scripts scripts_dir_fp >>= fun () ->
+      Dkml_runtimescripts.extract_dkml_scripts scripts_dir_fp >>= fun () ->
       (* Get local directory *)
       Option.fold ~none:(OS.Dir.current ()) ~some:(fun v -> Ok v) localdir_fp_opt
       >>= fun localdir_fp ->
       (* Find env *)
       Fpath.of_string "/" >>= fun slash ->
-      (Lazy.force get_msys2_dir_opt >>= function
+      (Lazy.force Dkml_runtimelib.get_msys2_dir_opt >>= function
        | None -> Ok Fpath.(slash / "usr" / "bin" / "env")
        | Some msys2_dir ->
            Logs.debug (fun m -> m "MSYS2 directory: %a" Fpath.pp msys2_dir);

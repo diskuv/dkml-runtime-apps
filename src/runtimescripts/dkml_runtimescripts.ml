@@ -1,21 +1,7 @@
 open Bos
-open Astring
-include Dkml_context
-include Dkml_root
-module Dkml_scripts = Scripts
-module Dkml_environment = Dkml_environment
-
-module Monadic_operators = struct
-  (* Result monad operators *)
-  let ( >>= ) = Result.bind
-
-  let ( >>| ) = Result.map
-end
-
-let int_parser = OS.Env.(parser "int" String.to_int)
 
 let extract_dkml_scripts dir_fp =
-  let open Monadic_operators in
+  let ( >>= ) = Result.bind in
   List.fold_left
     (fun acc filename ->
       match acc with
@@ -34,4 +20,4 @@ let extract_dkml_scripts dir_fp =
     (Result.Ok ()) Dkml_scripts.file_list
   >>= fun () ->
   (* cp <builtin> .dkmlroot *)
-  OS.File.write Fpath.(dir_fp // v ".dkmlroot") dkmlroot_contents
+  OS.File.write Fpath.(dir_fp // v ".dkmlroot") Dkml_root.dkmlroot_contents

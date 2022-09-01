@@ -1,6 +1,6 @@
 open Bos
 open Rresult
-open Dkml_runtime
+open Dkml_runtimelib
 
 let fpath_notnull f = Fpath.compare OS.File.null f <> 0
 

@@ -1,0 +1,4 @@
+(library
+ (name dkml_runtimelib)
+ (public_name dkml-runtimelib)
+ (libraries bos sexplib dkml-c-probe))

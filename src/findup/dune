@@ -1,4 +1,0 @@
-(executable
- (package dkml-apps)
- (name findup)
- (public_name dkml-findup.exe))

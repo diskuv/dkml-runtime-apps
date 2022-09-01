@@ -12,10 +12,6 @@ depends: [
   "dune" {>= "2.9"}
   "ocaml" {>= "4.12.1"}
   "crunch" {>= "3.2.0" & build}
-  "astring" {>= "0.8.5"}
-  "bos" {>= "0.2.0"}
-  "sexplib" {>= "0.14.0"}
-  "dkml-c-probe" {>= "3.0.0~"}
   "odoc" {with-doc}
 ]
 dev-repo: "git+https://github.com/diskuv/dkml-runtime-apps.git"

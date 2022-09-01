@@ -8,8 +8,17 @@ $(SWITCH_ARTIFACTS):
 	export OPAMYES=1 && if [ -x "$$(opam var root)/plugins/bin/opam-dkml" ]; then \
 		opam dkml init ; \
 	else \
-		opam switch create . 4.12.1; \
+		opam switch create . --formula '"ocaml" {>= "4.12.1"}' --no-install; \
 	fi
+
+# -------------------------------------
+# 	Windows (MSYS2/Cygwin/native) setup
+ifeq ($(OS),Windows_NT)
+EXEEXT = .exe
+else
+EXEEXT =
+endif
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 # -------------------------------------
 # 	Diskuv OCaml / MSYS2 setup
@@ -29,18 +38,53 @@ endif
 endif
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-DUNE_ARTIFACTS = _opam/bin/dune.exe
+DUNE_ARTIFACTS = _opam/bin/dune$(EXEEXT)
 dune: $(DUNE_ARTIFACTS)
 .PHONY: dune
 $(DUNE_ARTIFACTS): $(SWITCH_ARTIFACTS) $(MSYS2_CLANG64_PREREQS)
 	export OPAMYES=1 OPAMSWITCH='$(OPAMSWITCH)' && \
 	opam install dune
 
+IDE_ARTIFACTS = _opam/bin/ocamlformat$(EXEEXT) _opam/bin/ocamlformat-rpc$(EXEEXT) _opam/bin/ocamllsp$(EXEEXT)
+ide: $(IDE_ARTIFACTS)
+.PHONY: ide
+$(IDE_ARTIFACTS): $(SWITCH_ARTIFACTS) $(MSYS2_CLANG64_PREREQS)
+	export OPAMYES=1 OPAMSWITCH='$(OPAMSWITCH)' && \
+	opam install ocamlformat.0.19.0 ocamlformat-rpc.0.19.0 ocaml-lsp-server
+
+.PHONY: format
+format: $(IDE_ARTIFACTS)
+	export OPAMYES=1 OPAMSWITCH='$(OPAMSWITCH)' && \
+	opam exec -- ocamlformat
+
+# dkml-runtimelib
+
+DKML_RUNTIMELIB_PREREQS = _opam/lib/bos/META _opam/lib/sexplib/META _opam/lib/dkml-c-probe/META
+$(DKML_RUNTIMELIB_PREREQS): $(DUNE_ARTIFACTS)
+	export OPAMYES=1 OPAMSWITCH='$(OPAMSWITCH)' && \
+	opam exec -- dune build --display=short dkml-runtimelib.opam && \
+	opam install ./dkml-runtimelib.opam --deps-only --with-test
+
+DKML_RUNTIMELIB_SRC=$(wildcard src/runtimelib/dune src/runtimelib/*.ml src/runtimelib/*.mli)
+DKML_RUNTIMELIB_ARTIFACTS = _build/default/src/runtimelib/dkml_runtimelib.cmxs
+dkml-runtimelib: $(DKML_RUNTIMELIB_ARTIFACTS)
+.PHONY: dkml-runtimelib
+$(DKML_RUNTIMELIB_ARTIFACTS): $(DUNE_ARTIFACTS) $(DKML_RUNTIMELIB_PREREQS) $(DKML_RUNTIMELIB_SRC)
+	export OPAMYES=1 OPAMSWITCH='$(OPAMSWITCH)' && \
+	opam exec -- dune build --display=short -p dkml-runtimelib
+
+# with-dkml
+
+WITH_DKML_PREREQS = _opam/lib/sha/META
+$(WITH_DKML_PREREQS): $(DUNE_ARTIFACTS)
+	export OPAMYES=1 OPAMSWITCH='$(OPAMSWITCH)' && \
+	opam exec -- dune build --display=short with-dkml.opam && \
+	opam install ./dkml-runtimelib.opam ./with-dkml.opam --deps-only --with-test
+
 WITH_DKML_EXE=_build/default/src/with-dkml/with_dkml.exe
-SRC_DEPS=$(wildcard src/runtime/dune src/runtime/*.ml src/with-dkml/dune src/with-dkml/*.ml)
+WITH_DKML_SRC=$(wildcard src/with-dkml/dune src/with-dkml/*.ml)
 with-dkml: $(WITH_DKML_EXE)
 .PHONY: with-dkml
-$(WITH_DKML_EXE): $(DUNE_ARTIFACTS) $(YAML_ARTIFACTS) $(SRC_DEPS)
+$(WITH_DKML_EXE): $(DUNE_ARTIFACTS) $(WITH_DKML_PREREQS) $(WITH_DKML_SRC) $(DKML_RUNTIMELIB_ARTIFACTS)
 	export OPAMYES=1 OPAMSWITCH='$(OPAMSWITCH)' && \
-	opam exec -- dune exec $(WITH_DKML_EXE)
-	touch $@
+	opam exec -- dune build --display=short -p with-dkml,dkml-runtimelib

@@ -19,7 +19,6 @@ To install and test:
 *)
 open Bos
 open Rresult
-open Dkml_runtime
 module Arg = Cmdliner.Arg
 module Term = Cmdliner.Term
 
@@ -30,7 +29,7 @@ let setup () =
   let dbt = OS.Env.value "DKML_BUILD_TRACE" OS.Env.string ~absent:"OFF" in
   if
     dbt = "ON"
-    && OS.Env.value "DKML_BUILD_TRACE_LEVEL" int_parser ~absent:0 >= 2
+    && OS.Env.value "DKML_BUILD_TRACE_LEVEL" Dkml_runtimelib.int_parser ~absent:0 >= 2
   then Logs.set_level (Some Logs.Debug)
   else if dbt = "ON" then Logs.set_level (Some Logs.Info)
   else Logs.set_level (Some Logs.Warning);
@@ -39,7 +38,7 @@ let setup () =
   Rresult.R.error_to_msg ~pp_error:Fmt.string
     (Dkml_c_probe.C_abi.V2.get_abi_name ())
   >>= fun target_platform_name ->
-  Dkml_environment.set_msys2_entries ~minimize_sideeffects:false
+    Dkml_runtimelib.Dkml_environment.set_msys2_entries ~minimize_sideeffects:false
     target_platform_name
   >>= fun () ->
   (* Diagnostics *)
@@ -48,7 +47,7 @@ let setup () =
   Logs.debug (fun m ->
       m "Environment:@\n%a" Astring.String.Map.dump_string_map current_env);
   Logs.debug (fun m -> m "Current directory: %a" Fpath.pp current_dir);
-  Lazy.force get_dkmlhome_dir_opt >>| function
+  Lazy.force Dkml_runtimelib.get_dkmlhome_dir_opt >>| function
   | None -> ()
   | Some dkmlhome_dir ->
       Logs.debug (fun m -> m "DKML home directory: %a" Fpath.pp dkmlhome_dir)
