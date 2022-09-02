@@ -26,6 +26,9 @@
  (synopsis "Runtime scripts used by CLI applications and Opam plugins in a Diskuv OCaml installation")
  (depends
   (ocaml        (>= 4.12.1))
+  (bos          (>= 0.2.0))
+  (fpath        (>= 0.7.0))
+  (rresult      (>= 0.7.0))
   (crunch       (and (>= 3.2.0) :build))))
 
 (package
