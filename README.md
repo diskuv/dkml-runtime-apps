@@ -25,7 +25,7 @@ The `with-dkml` project and its dependency `dkml-runtimelib` have Opam Monorepo 
 * `dkml-runtimelib.opam.locked`
 * `duniverse/`
 
-The purpose of Opam Monorepo for `with-dkml` is so that `dune.2.9.3+shim` and the other Dune
+The purpose of Opam Monorepo for `with-dkml` is so that `dune.2.9.3+shim.1.0.1` and the other Dune
 shims can build `with-dkml.exe` _while_ building simultaneously building Dune. All we have to do is to check in
 `duniverse/` and with a slight modification to Dune's `opam` file we can bundle `with-dkml.exe`
 as a shim.
