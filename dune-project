@@ -29,6 +29,7 @@
   (bos          (>= 0.2.0))
   (fpath        (>= 0.7.0))
   (rresult      (>= 0.7.0))
+  dkml-runtime-distribution
   (crunch       (and (>= 3.2.0) :build))))
 
 (package
