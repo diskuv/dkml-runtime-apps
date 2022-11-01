@@ -91,7 +91,7 @@ $(DKML_RUNTIMELIB_ARTIFACTS): $(DUNE_ARTIFACTS) $(DKML_RUNTIMELIB_PREREQS) $(DKM
 
 # with-dkml (regular opam build)
 
-WITH_DKML_PREREQS = _opam/lib/sha/META
+WITH_DKML_PREREQS = _opam/lib/sha/META _opam/lib/crunch/META
 $(WITH_DKML_PREREQS): $(DUNE_ARTIFACTS)
 	export OPAMYES=1 OPAMSWITCH='$(OPAMSWITCH)' && \
 	opam exec -- dune build --display=short with-dkml.opam && \
