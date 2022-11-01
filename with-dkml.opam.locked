@@ -3,9 +3,9 @@ synopsis: "opam-monorepo generated lockfile"
 maintainer: "opam-monorepo"
 depends: [
   "astring" {= "0.8.5+dune" & ?vendor}
-  "base" {= "v0.15.0" & ?vendor}
+  "base" {= "v0.15.1" & ?vendor}
   "base-bigarray" {= "base"}
-  "base-bytes" {= "base"}
+  "base-bytes" {= "base+dune" & ?vendor}
   "base-threads" {= "base"}
   "base-unix" {= "base"}
   "bos" {= "0.2.1+dune" & ?vendor}
@@ -13,9 +13,9 @@ depends: [
   "cppo" {= "1.6.9" & ?vendor}
   "csexp" {= "1.5.1" & ?vendor}
   "dkml-c-probe" {= "3.0.0" & ?vendor}
+  "dkml-runtime-common" {= "~dev" & ?vendor}
   "dune" {= "2.9.3"}
   "dune-configurator" {= "2.9.3" & ?vendor}
-  "findlib" {= "1.8.1+dune" & ?vendor}
   "fmt" {= "0.9.0+dune" & ?vendor}
   "fpath" {= "0.7.3+dune" & ?vendor}
   "logs" {= "0.7.0+dune2" & ?vendor}
@@ -25,7 +25,6 @@ depends: [
   "ocaml-base-compiler" {= "4.12.1"}
   "ocaml-config" {= "2"}
   "ocaml-options-vanilla" {= "1"}
-  "ocamlfind" {= "1.8.1+dune" & ?vendor}
   "ocplib-endian" {= "1.2" & ?vendor}
   "parsexp" {= "v0.15.0" & ?vendor}
   "result" {= "1.5" & ?vendor}
@@ -41,8 +40,12 @@ pin-depends: [
     "https://github.com/dune-universe/astring/archive/v0.8.5+dune.tar.gz"
   ]
   [
-    "base.v0.15.0"
-    "https://ocaml.janestreet.com/ocaml-core/v0.15/files/base-v0.15.0.tar.gz"
+    "base.v0.15.1"
+    "https://github.com/janestreet/base/archive/refs/tags/v0.15.1.tar.gz"
+  ]
+  [
+    "base-bytes.base+dune"
+    "https://github.com/kit-ty-kate/bytes/archive/v0.1.0.tar.gz"
   ]
   [
     "bos.0.2.1+dune"
@@ -65,12 +68,12 @@ pin-depends: [
     "https://github.com/diskuv/dkml-c-probe/archive/v3.0.0.tar.gz"
   ]
   [
-    "dune-configurator.2.9.3"
-    "https://github.com/ocaml/dune/releases/download/2.9.3/dune-site-2.9.3.tbz"
+    "dkml-runtime-common.~dev"
+    "git+https://github.com/diskuv/dkml-runtime-common.git#9e102d77d29682998f69dc1fb552283bf1d731cf"
   ]
   [
-    "findlib.1.8.1+dune"
-    "https://github.com/dune-universe/lib-findlib/archive/v1.8.1+dune.tar.gz"
+    "dune-configurator.2.9.3"
+    "https://github.com/ocaml/dune/releases/download/2.9.3/dune-site-2.9.3.tbz"
   ]
   [
     "fmt.0.9.0+dune"
@@ -88,10 +91,6 @@ pin-depends: [
   [
     "num.1.4+dune2"
     "https://github.com/dune-universe/num/releases/download/v1.4%2Bdune2/num-v1.4.dune2.tbz"
-  ]
-  [
-    "ocamlfind.1.8.1+dune"
-    "https://github.com/dune-universe/lib-findlib/archive/v1.8.1+dune.tar.gz"
   ]
   [
     "ocplib-endian.1.2"
@@ -151,6 +150,10 @@ x-opam-monorepo-duniverse-dirs: [
     ]
   ]
   [
+    "git+https://github.com/diskuv/dkml-runtime-common.git#9e102d77d29682998f69dc1fb552283bf1d731cf"
+    "dkml-runtime-common"
+  ]
+  [
     "https://github.com/djs55/ocaml-sha/releases/download/1.15.2/sha-1.15.2.tbz"
     "ocaml-sha"
     [
@@ -189,13 +192,6 @@ x-opam-monorepo-duniverse-dirs: [
     ]
   ]
   [
-    "https://github.com/dune-universe/lib-findlib/archive/v1.8.1+dune.tar.gz"
-    "lib-findlib"
-    [
-      "sha256=1a337aaedca94837d4d6a1689ed18109e4a2cfd4aa99a56252a6f19fe1291bb0"
-    ]
-  ]
-  [
     "https://github.com/dune-universe/logs/releases/download/v0.7.0%2Bdune2/logs-0.7.0.dune2.tbz"
     "logs"
     [
@@ -220,6 +216,13 @@ x-opam-monorepo-duniverse-dirs: [
     ]
   ]
   [
+    "https://github.com/janestreet/base/archive/refs/tags/v0.15.1.tar.gz"
+    "base"
+    [
+      "sha256=755e303171ea267e3ba5af7aa8ea27537f3394d97c77d340b10f806d6ef61a14"
+    ]
+  ]
+  [
     "https://github.com/janestreet/result/releases/download/1.5/result-1.5.tbz"
     "result"
     ["md5=1b82dec78849680b49ae9a8a365b831b"]
@@ -235,6 +238,13 @@ x-opam-monorepo-duniverse-dirs: [
     "https://github.com/janestreet/sexplib0/archive/refs/tags/v0.15.1.tar.gz"
     "sexplib0"
     ["md5=ab8fd6273f35a792cad48cbb3024a7f9"]
+  ]
+  [
+    "https://github.com/kit-ty-kate/bytes/archive/v0.1.0.tar.gz"
+    "bytes"
+    [
+      "sha256=795b9bf545841714aaf0e517b62834a589937f65ad815ed4589ea56fa614d238"
+    ]
   ]
   [
     "https://github.com/ocaml-community/cppo/archive/v1.6.9.tar.gz"
@@ -274,13 +284,6 @@ x-opam-monorepo-duniverse-dirs: [
     [
       "md5=279024789a0ec84a9d97d98bad847f97"
       "sha512=698875bd3bfcd5baa47eb48e412f442d289f9972421321541860ebe110b9af1949c3fbc253768495726ec547fe4ba25483cd97ff39bc668496fba95b2ed9edd8"
-    ]
-  ]
-  [
-    "https://ocaml.janestreet.com/ocaml-core/v0.15/files/base-v0.15.0.tar.gz"
-    "base"
-    [
-      "sha256=8657ae4324a9948457112245c49d97d2da95f157f780f5d97f0b924312a6a53d"
     ]
   ]
   [
