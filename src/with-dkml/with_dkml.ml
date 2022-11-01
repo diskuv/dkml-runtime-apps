@@ -273,17 +273,16 @@ let set_msvc_entries cache_keys =
         Ok cache_keys)
       else
         (* Cache miss *)
-        let cache_miss tmp_sexp_file _oc _v =
+        let cache_miss ~tmp_sexp_file ~tmp_sh_file =
+          (* Write the shell script that will autodetect the compiler *)
+          OS.File.writef tmp_sh_file "%s@.@.autodetect_compiler --sexp '%a'"
+            crossplatfuncs Fpath.pp tmp_sexp_file
+          >>| fun () ->
+          (* Run the compiler detecting shell script *)
           let dash =
             Fpath.(msys2_dir / "usr" / "bin" / "dash.exe" |> to_string)
           in
-          let shell_expr =
-            Fmt.str "%s@.@.autodetect_compiler --sexp '%a'" crossplatfuncs
-              Fpath.pp tmp_sexp_file
-          in
-          let cmd = Cmd.(v dash % "-c" % shell_expr) in
-
-          (* Run the shell expression to autodetect the compiler *)
+          let cmd = Cmd.(v dash % Fpath.to_string tmp_sh_file) in
           (OS.Cmd.run_status cmd >>= function
            | `Exited status ->
                if status <> 0 then
@@ -319,8 +318,16 @@ let set_msvc_entries cache_keys =
           Sexp.List setvars
         in
 
-        match OS.File.with_tmp_oc "dkml-%s.tmp.sexp" cache_miss () with
-        | Ok (Ok setvars) ->
+        match
+          OS.File.with_tmp_oc "dkml-%s.tmp.sexp"
+            (fun tmp_sexp_file _oc () ->
+              OS.File.with_tmp_oc "dkml-%s.tmp.sh"
+                (fun tmp_sh_file _oc () ->
+                  cache_miss ~tmp_sexp_file ~tmp_sh_file)
+                ())
+            ()
+        with
+        | Ok (Ok (Ok (Ok setvars))) ->
             do_set setvars;
 
             (* Save the cache miss so it is a cache hit next time *)
@@ -330,6 +337,8 @@ let set_msvc_entries cache_keys =
 
             Sexp.save_hum (Fpath.to_string cache_file) setvars;
             Ok cache_keys
+        | Ok (Ok (Ok (Error _ as err))) -> err
+        | Ok (Ok (Error _ as err)) -> err
         | Ok (Error _ as err) -> err
         | Error _ as err -> err)
 
