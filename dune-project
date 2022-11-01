@@ -40,6 +40,7 @@
  (depends
   (ocaml            (>= 4.12.1))
   (dkml-runtimelib  (= :version))
+  dkml-runtime-common
   (logs             (>= 0.7.0))
   (fmt              (>= 0.8.9))
   (sha              (>= 1.15.2))))

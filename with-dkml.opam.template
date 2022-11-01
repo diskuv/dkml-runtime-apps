@@ -1,0 +1,6 @@
+pin-depends: [
+  [
+    "dkml-runtime-common.~dev"
+    "git+https://github.com/diskuv/dkml-runtime-common.git"
+  ]
+]

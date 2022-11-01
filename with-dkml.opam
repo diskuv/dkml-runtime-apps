@@ -11,6 +11,7 @@ depends: [
   "dune" {>= "2.9"}
   "ocaml" {>= "4.12.1"}
   "dkml-runtimelib" {= version}
+  "dkml-runtime-common"
   "logs" {>= "0.7.0"}
   "fmt" {>= "0.8.9"}
   "sha" {>= "1.15.2"}
@@ -33,3 +34,9 @@ build: [
   ["dune" "install" "-p" name "--create-install-files" name]
 ]
 dev-repo: "git+https://github.com/diskuv/dkml-runtime-apps.git"
+pin-depends: [
+  [
+    "dkml-runtime-common.~dev"
+    "git+https://github.com/diskuv/dkml-runtime-common.git"
+  ]
+]
