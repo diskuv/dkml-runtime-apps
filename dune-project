@@ -29,6 +29,8 @@
   (bos          (>= 0.2.0))
   (fpath        (>= 0.7.0))
   (rresult      (>= 0.7.0))
+  dkml-compiler-env
+  dkml-runtime-common
   dkml-runtime-distribution
   (crunch       (and (>= 3.2.0) :build))))
 

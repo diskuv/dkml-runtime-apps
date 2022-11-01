@@ -1,52 +1,12 @@
-build: [
-  # Create a DKMLDIR. Its structure mimics a git submodule setup.
-
-  #   <dkmldir>/vendor/drc/
-  ["install" "-d" "dkmldir/vendor/drc"]
-  ["tar" "xCfz" "dkmldir/vendor/drc" "dl/dkml-runtime-common.tar.gz" "--strip-components=1"]
-
-  #   <dkmldir>/vendor/drd/
-  ["install" "-d" "dkmldir/vendor/drd"]
-  ["tar" "xCfz" "dkmldir/vendor/drd" "dl/dkml-runtime-distribution.tar.gz" "--strip-components=1"]
-
-  #   <dkmldir>/vendor/dkml-compiler/
-  ["install" "-d" "dkmldir/vendor/dkml-compiler/src"]
-  ["tar" "xCfz" "dkmldir/vendor/dkml-compiler" "dl/dkml-compiler.tar.gz" "--strip-components=1"]
-
-  # Ordinary Dune
-  ["dune" "subst"] {dev}
-  [
-    "dune"
-    "build"
-    "-p"
-    name
-    "-j"
-    jobs
-    "--promote-install-files=false"
-    "@install"
-    "@runtest" {with-test}
-    "@doc" {with-doc}
-  ]
-  ["dune" "install" "-p" name "--create-install-files" name]
-]
-# The particular version of dkml-compiler (4.12.1, etc.) is unimportant. Only
-# the `src/standard-compiler-env-to-ocaml-configure-(env|launcher).sh` files
-# are captured in `src/common/dune`. TODO: May even want those two scripts to be
-# promoted into dkml-runtime-(common|distribution), so we can drop this
-# dependency.
-extra-source "dl/dkml-compiler.tar.gz" {
-  src: "https://github.com/diskuv/dkml-compiler/archive/refs/tags/4.12.1-v0.4.1-prerel6.tar.gz"
-  checksum: [
-    "sha256=dab79ee3d2880995c73899cea8a5873e49a3f67e54fa336ce2e0c937e0f3b8c4"
-  ]
-}
-extra-source "dl/dkml-runtime-common.tar.gz" {
-  src: "https://github.com/diskuv/dkml-runtime-common/archive/refs/tags/v1.0.1.tar.gz"
-  checksum: [
-    "sha256=35a88827e3e02665a6ed5abf1c1aa457fbb3c2a78ff61c4211d24bec8d8b757d"
-  ]
-}
 pin-depends: [
+  [
+    "dkml-compiler-env.~dev"
+    "git+https://github.com/diskuv/dkml-compiler.git"
+  ]
+  [
+    "dkml-runtime-common.~dev"
+    "git+https://github.com/diskuv/dkml-runtime-common.git"
+  ]
   [
     "dkml-runtime-distribution.~dev"
     "git+https://github.com/diskuv/dkml-runtime-distribution.git"

@@ -20,4 +20,5 @@ let extract_dkml_scripts dir_fp =
     (Result.Ok ()) Dkml_scripts.file_list
   >>= fun () ->
   (* cp <builtin> .dkmlroot *)
-  OS.File.write Fpath.(dir_fp // v ".dkmlroot") Dkml_root.dkmlroot_contents
+  let template = String.trim @@ Option.get @@ Dkml_scripts.read "vendor/dkml-compiler/template.dkmlroot" in
+  OS.File.write Fpath.(dir_fp // v ".dkmlroot") template

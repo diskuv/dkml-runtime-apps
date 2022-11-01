@@ -4,9 +4,7 @@ To setup on Unix/macOS:
   # or: eval $(opam env) && opam install dune bos logs fmt sexplib sha
   opam install ocaml-lsp-server ocamlformat ocamlformat-rpc # optional, for vscode or emacs
 
-To setup on Windows:
-  1. Make sure $DiskuvOCamlHome/share/dkml/functions/crossplatform-functions.sh exists.
-  2. Run in MSYS2:
+To setup on Windows, run in MSYS2:
     eval $(opam env --switch "$DiskuvOCamlHome/dkml" --set-switch)
 
 To test:

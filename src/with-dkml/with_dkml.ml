@@ -4,9 +4,7 @@ To setup on Unix/macOS:
   # or: eval $(opam env) && opam install dune bos logs fmt sexplib sha
   opam install ocaml-lsp-server ocamlformat ocamlformat-rpc # optional, for vscode or emacs
 
-To setup on Windows:
-  1. Make sure $DiskuvOCamlHome/share/dkml/functions/crossplatform-functions.sh exists.
-  2. Run in MSYS2:
+To setup on Windows, run in MSYS2:
     eval $(opam env --switch "$DiskuvOCamlHome/dkml" --set-switch)
 
 To test DKML_3P_PROGRAM_PATH or DKML_3P_PREFIX_PATH:
@@ -22,6 +20,8 @@ open Dkml_runtimelib
 open Dkml_runtimelib.Dkml_environment
 
 let usage_msg = "with-dkml.exe CMD [ARGS...]\n"
+
+let crossplatfuncs = Option.get @@ Crossplat.read "crossplatform-functions.sh"
 
 (* [msvc_as_is_vars] is the list of environment variables created by VsDevCmd.bat that
    should always be inserted into the environment as-is.
@@ -228,7 +228,6 @@ let set_msvc_entries cache_keys =
   Lazy.force get_msys2_dir_opt >>= function
   | None -> R.ok cache_keys
   | Some msys2_dir -> (
-      Lazy.force get_dkmlhome_dir >>= fun dkmlhome_dir ->
       let do_set setvars =
         List.iter
           (fun (varname, varvalue) ->
@@ -278,18 +277,9 @@ let set_msvc_entries cache_keys =
           let dash =
             Fpath.(msys2_dir / "usr" / "bin" / "dash.exe" |> to_string)
           in
-          let crossplatfuncs =
-            Fpath.(
-              dkmlhome_dir / "share" / "dkml" / "functions"
-              / "crossplatform-functions.sh"
-              |> to_string)
-          in
-
           let shell_expr =
-            Fmt.str
-              "__source=$(/usr/bin/cygpath -a '%s') && . $__source && \
-               autodetect_compiler --sexp '%a'"
-              crossplatfuncs Fpath.pp tmp_sexp_file
+            Fmt.str "%s@.@.autodetect_compiler --sexp '%a'" crossplatfuncs
+              Fpath.pp tmp_sexp_file
           in
           let cmd = Cmd.(v dash % "-c" % shell_expr) in
 

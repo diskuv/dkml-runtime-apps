@@ -5,34 +5,33 @@
 
 (rule
  (target dkml_scripts.ml)
- (deps
-  "%{project_root}/dkmldir/vendor/drd/src/unix/create-opam-switch.sh"
-  "%{project_root}/dkmldir/vendor/dkml-compiler/env/standard-compiler-env-to-ocaml-configure-env.sh"
-  "%{project_root}/dkmldir/vendor/drd/src/unix/private/standard-compiler-env-to-ocaml-configure-launcher.sh"
-  "%{project_root}/dkmldir/vendor/drd/src/unix/private/platform-opam-exec.sh"
-  "%{project_root}/dkmldir/vendor/drc/unix/_within_dev.sh"
-  "%{project_root}/dkmldir/vendor/drc/unix/_common_tool.sh"
-  "%{project_root}/dkmldir/vendor/drc/unix/crossplatform-functions.sh")
+ (deps 
+  (:scetoce "%{lib:dkml-compiler-env:standard-compiler-env-to-ocaml-configure-env.sh}")
+  (:td      "%{lib:dkml-runtime-common:template.dkmlroot}")
+  (:wd      "%{lib:dkml-runtime-common:unix/_within_dev.sh}")
+  (:ct      "%{lib:dkml-runtime-common:unix/_common_tool.sh}")
+  (:cf      "%{lib:dkml-runtime-common:unix/crossplatform-functions.sh}")
+  (:cos     "%{lib:dkml-runtime-distribution:src/unix/create-opam-switch.sh}")
+  (:scetocl "%{lib:dkml-runtime-distribution:src/unix/private/standard-compiler-env-to-ocaml-configure-launcher.sh}")
+  (:poe     "%{lib:dkml-runtime-distribution:src/unix/private/platform-opam-exec.sh}")
+  )
  (action
   (progn
+   (run install -d  dkmldir/vendor/drd/src/unix/private dkmldir/vendor/dkml-compiler/env dkmldir/vendor/drc/unix)
+   (no-infer
+    (progn
+     (copy %{scetoce} dkmldir/vendor/dkml-compiler/env/standard-compiler-env-to-ocaml-configure-env.sh)
+     (copy %{td}      dkmldir/vendor/dkml-compiler/template.dkmlroot)
+     (copy %{wd}      dkmldir/vendor/drc/unix/_within_dev.sh)
+     (copy %{ct}      dkmldir/vendor/drc/unix/_common_tool.sh)
+     (copy %{cf}      dkmldir/vendor/drc/unix/crossplatform-functions.sh)
+     (copy %{cos}     dkmldir/vendor/drd/src/unix/create-opam-switch.sh)
+     (copy %{scetocl} dkmldir/vendor/drd/src/unix/private/standard-compiler-env-to-ocaml-configure-launcher.sh)
+     (copy %{poe}     dkmldir/vendor/drd/src/unix/private/platform-opam-exec.sh)))
    (run
     %{bin:ocaml-crunch}
     "--mode=plain"
     "--output=%{target}"
     "--ext=sh"
-    "%{project_root}/dkmldir"))))
-
-; Because .dkmlroot is not recognized as an extension by ocaml-crunch, we need to separately
-; get this string embedded. We will use the {| ... |} OCaml multiline string format.
-
-(rule
- (target dkml_root.ml)
- (deps
-  (:dkmlroot "%{project_root}/dkmldir/vendor/drc/.template.dkmlroot"))
- (action
-  (with-stdout-to
-   %{target}
-   (progn
-    (echo "let dkmlroot_contents = {embeddingdkmlroot|")
-    (cat %{dkmlroot})
-    (echo "|embeddingdkmlroot}")))))
+    "--ext=dkmlroot"
+    "dkmldir"))))

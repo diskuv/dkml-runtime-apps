@@ -169,14 +169,3 @@ let get_dkmlhome_dir_opt =
          match List.assoc_opt "DiskuvOCamlHome" assocl with
          | Some [ v ] -> Fpath.of_string v >>= fun fp -> R.ok (Some fp)
          | Some _ | None -> R.ok None))
-
-(* Get Diskuv OCaml home directory *)
-let get_dkmlhome_dir =
-  lazy
-    ( Lazy.force get_dkmlvars >>= fun assocl ->
-      match List.assoc_opt "DiskuvOCamlHome" assocl with
-      | Some [ v ] -> Fpath.of_string v >>= fun fp -> R.ok fp
-      | Some _ ->
-          R.error_msg
-            "More or less than one DiskuvOCamlHome in dkmlvars-v2.sexp"
-      | None -> R.error_msg "No DiskuvOCamlHome in dkmlvars-v2.sexp" )
