@@ -22,7 +22,6 @@ $ make duniverse
 
 The `with-dkml` project and its dependency `dkml-runtimelib` have Opam Monorepo files:
 * `with-dkml.opam.locked`
-* `dkml-runtimelib.opam.locked`
 * `duniverse/`
 
 The purpose of Opam Monorepo for `with-dkml` is so that `dune.2.9.3+shim.1.0.1` and the other Dune
