@@ -11,6 +11,7 @@ depends: [
   "bos" {= "0.2.1+dune" & ?vendor}
   "cmdliner" {= "1.1.1+dune" & ?vendor}
   "cppo" {= "1.6.9" & ?vendor}
+  "crunch" {= "3.3.1" & ?vendor}
   "csexp" {= "1.5.1" & ?vendor}
   "dkml-c-probe" {= "3.0.0" & ?vendor}
   "dkml-runtime-common" {= "~dev" & ?vendor}
@@ -27,6 +28,7 @@ depends: [
   "ocaml-options-vanilla" {= "1"}
   "ocplib-endian" {= "1.2" & ?vendor}
   "parsexp" {= "v0.15.0" & ?vendor}
+  "ptime" {= "1.0.0+dune2" & ?vendor}
   "result" {= "1.5" & ?vendor}
   "rresult" {= "0.7.0+dune" & ?vendor}
   "sexplib" {= "v0.15.1" & ?vendor}
@@ -58,6 +60,10 @@ pin-depends: [
   [
     "cppo.1.6.9"
     "https://github.com/ocaml-community/cppo/archive/v1.6.9.tar.gz"
+  ]
+  [
+    "crunch.3.3.1"
+    "https://github.com/mirage/ocaml-crunch/releases/download/v3.3.1/crunch-3.3.1.tbz"
   ]
   [
     "csexp.1.5.1"
@@ -99,6 +105,10 @@ pin-depends: [
   [
     "parsexp.v0.15.0"
     "https://ocaml.janestreet.com/ocaml-core/v0.15/files/parsexp-v0.15.0.tar.gz"
+  ]
+  [
+    "ptime.1.0.0+dune2"
+    "https://github.com/dune-universe/ptime/releases/download/v1.0.0%2Bdune2/ptime-1.0.0.dune2.tbz"
   ]
   [
     "result.1.5"
@@ -208,6 +218,14 @@ x-opam-monorepo-duniverse-dirs: [
     ]
   ]
   [
+    "https://github.com/dune-universe/ptime/releases/download/v1.0.0%2Bdune2/ptime-1.0.0.dune2.tbz"
+    "ptime"
+    [
+      "sha256=10097ae4e8426f2e8cf64df150fb43179a7493a02e0ccef4f45124e3f08512a1"
+      "sha512=c49781faba1b9bf4cd01fe810e46354cdfa945f24642fb8aeabe2ab4a576717a18de7439b015f288ebaddcae9bde2fd01eff465c986a0e9ebcb2c82e8ce8d9b4"
+    ]
+  ]
+  [
     "https://github.com/dune-universe/rresult/releases/download/v0.7.0%2Bdune/rresult-0.7.0.dune.tbz"
     "rresult"
     [
@@ -244,6 +262,14 @@ x-opam-monorepo-duniverse-dirs: [
     "bytes"
     [
       "sha256=795b9bf545841714aaf0e517b62834a589937f65ad815ed4589ea56fa614d238"
+    ]
+  ]
+  [
+    "https://github.com/mirage/ocaml-crunch/releases/download/v3.3.1/crunch-3.3.1.tbz"
+    "ocaml-crunch"
+    [
+      "sha256=2c5ba0d4110bcbb7731cba4eafb6c44a7487c3f88c1ad47401271b69ffa8ed6a"
+      "sha512=5aaa1b67456dd2f5e3ab450ea547e62fba2b0341a49f3b24669162dce91b6ea1158c1594d60c6df3e416e719484411c50ae61017c40b2f75ee90401aa543bd08"
     ]
   ]
   [
