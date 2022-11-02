@@ -14,7 +14,16 @@ $ # Optional
 $ make ide
 
 $ # Only needed if you are changing Opam dependencies.
-$ # Will not work on Windows yet until pins or patches submitted to Opam Monorepo
+$ # Will not work on Windows until Opam Monorepo works on Windows
+$ make duniverse
+```
+
+## Upgrading
+
+```console
+$ # Will not work on Windows until Opam Monorepo works on Windows
+$ opam update
+$ touch with-dkml.opam
 $ make duniverse
 ```
 

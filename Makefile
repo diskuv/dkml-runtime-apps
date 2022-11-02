@@ -115,7 +115,7 @@ $(MONOREPO_ARTIFACTS): $(SWITCH_ARTIFACTS) $(MSYS2_CLANG64_PREREQS)
 	opam install opam-monorepo
 	touch $@
 
-with-dkml.opam.locked: $(MONOREPO_ARTIFACTS) $(DUNE_ARTIFACTS) $(PIN_ARTIFACTS) dune-project Makefile
+with-dkml.opam.locked: $(MONOREPO_ARTIFACTS) $(DUNE_ARTIFACTS) $(PIN_ARTIFACTS) dune-project Makefile with-dkml.opam dkml-runtimelib.opam
 	export OPAMYES=1 OPAMSWITCH='$(OPAMSWITCH)' && \
 	opam exec -- dune build --display=short with-dkml.opam && \
 	opam monorepo lock --lockfile=$@ --ocaml-version=$(VERSION_OCAML) dkml-runtimelib with-dkml
