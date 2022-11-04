@@ -42,7 +42,7 @@ $(SWITCH_ARTIFACTS):
 	export OPAMYES=1 && if [ -x "$$(opam var root)/plugins/bin/opam-dkml" ]; then \
 		opam dkml init ; \
 	else \
-		opam switch create . --formula '["ocaml" {= "$(VERSION_OCAML)"} "dune" {= "$(VERSION_DUNE)"}]' --no-install --repos dune-universe=git+https://github.com/dune-universe/opam-overlays.git,default; \
+		opam switch create . --formula '["ocaml" {= "$(VERSION_OCAML)"} "dune" {= "$(VERSION_DUNE)"}]' --no-install --repos dune-universe=git+https://github.com/dune-universe/opam-overlays.git,diskuv=git+https://github.com/diskuv/diskuv-opam-repository.git,default; \
 	fi
 
 PIN_ARTIFACTS = _opam/.pin.depends
