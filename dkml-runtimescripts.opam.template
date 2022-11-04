@@ -4,10 +4,6 @@ pin-depends: [
     "git+https://github.com/diskuv/dkml-compiler.git"
   ]
   [
-    "dkml-runtime-common.~dev"
-    "git+https://github.com/diskuv/dkml-runtime-common.git"
-  ]
-  [
     "dkml-runtime-distribution.~dev"
     "git+https://github.com/diskuv/dkml-runtime-distribution.git"
   ]
