@@ -1,6 +1,1 @@
-pin-depends: [
-  [
-    "dkml-runtime-common.~dev"
-    "git+https://github.com/diskuv/dkml-runtime-common.git"
-  ]
-]
+x-opam-monorepo-opam-provided: ["dkml-runtime-common"]

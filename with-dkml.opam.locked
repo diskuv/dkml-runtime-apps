@@ -14,7 +14,7 @@ depends: [
   "crunch" {= "3.3.1" & ?vendor}
   "csexp" {= "1.5.1" & ?vendor}
   "dkml-c-probe" {= "3.0.0" & ?vendor}
-  "dkml-runtime-common" {= "~dev" & ?vendor}
+  "dkml-runtime-common" {= "1.0.2~prerel0"}
   "dune" {= "2.9.3"}
   "dune-configurator" {= "2.9.3" & ?vendor}
   "fmt" {= "0.9.0+dune" & ?vendor}
@@ -74,8 +74,8 @@ pin-depends: [
     "https://github.com/diskuv/dkml-c-probe/archive/v3.0.0.tar.gz"
   ]
   [
-    "dkml-runtime-common.~dev"
-    "git+https://github.com/diskuv/dkml-runtime-common.git#9e102d77d29682998f69dc1fb552283bf1d731cf"
+    "dkml-runtime-common.1.0.2~prerel0"
+    "https://github.com/diskuv/dkml-runtime-common/archive/1.0.2-prerel0.tar.gz"
   ]
   [
     "dune-configurator.2.9.3"
@@ -160,8 +160,12 @@ x-opam-monorepo-duniverse-dirs: [
     ]
   ]
   [
-    "git+https://github.com/diskuv/dkml-runtime-common.git#9e102d77d29682998f69dc1fb552283bf1d731cf"
+    "https://github.com/diskuv/dkml-runtime-common/archive/1.0.2-prerel0.tar.gz"
     "dkml-runtime-common"
+    [
+      "md5=d1ad17fda37fa3c7707eae107a35d603"
+      "sha512=d731529ae2d938bb9eb2cc980ec25d7c5b9934ba9fe99647bbf2234bc20ed4bdb7eeb6da97e797e60363b7bbff2bf3c1b00c4eea24c6cd095484cf474a6d9ebc"
+    ]
   ]
   [
     "https://github.com/djs55/ocaml-sha/releases/download/1.15.2/sha-1.15.2.tbz"
@@ -320,5 +324,6 @@ x-opam-monorepo-duniverse-dirs: [
     ]
   ]
 ]
+x-opam-monorepo-opam-provided: ["dkml-runtime-common"]
 x-opam-monorepo-root-packages: ["dkml-runtimelib" "with-dkml"]
 x-opam-monorepo-version: "0.3"
