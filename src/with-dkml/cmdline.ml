@@ -1,6 +1,25 @@
 open Bos
 open Astring
 
+(** On Windows ["winget install opam"] will install a version of opam that
+    is compiled without any patches; in fact any installation of
+    dkml-component-offline-opam will do the same. That means we need with-dkml
+    to set up the PATH so that opam can find for example ["cp"] (which is not
+    available on Windows unless you add MSYS2 or Cygwin to the PATH).
+
+    So any with-dkml shim of opam should delegate to the winget installed
+    opam after the shim sets up the PATH (and all the other things it does). *)
+let find_authoritative_opam_exe =
+  lazy
+    (match OS.Env.var "LOCALAPPDATA" with
+    | Some localappdata when not (String.equal localappdata "") ->
+        Some Fpath.(v localappdata / "Programs" / "opam" / "bin" / "opam")
+    | _ -> (
+        match OS.Env.var "HOME" with
+        | Some home when not (String.equal home "") ->
+            Some Fpath.(v home / ".local" / "bin" / "opam")
+        | _ -> None))
+
 let is_basename_of_filename_in_search_list ~search_list filename =
   match Fpath.of_string filename with
   | Ok argv0_p ->
@@ -101,22 +120,54 @@ let create_and_setenv_if_necessary () =
         Logs.debug (fun m -> m "MSYS2 directory: %a" Fpath.pp msys2_dir);
         Ok Fpath.(msys2_dir / "usr" / "bin" / "env.exe")
   in
+  let get_authoritative_opam_exe () =
+    match Lazy.force find_authoritative_opam_exe with
+    | Some authoritative_opam_exe ->
+        OS.Cmd.find_tool (Cmd.v @@ Fpath.to_string authoritative_opam_exe)
+    | None -> Ok None
+  in
   let get_real_exe cmd_no_ext_p =
     let dir, b = Fpath.split_base cmd_no_ext_p in
     let real_p = Fpath.(dir / (filename b ^ "-real")) in
     let+ real_exe_p = OS.Cmd.get_tool (Cmd.v (Fpath.to_string real_p)) in
     real_exe_p
   in
-  let get_abs_cmd_and_real_exe cmd =
+  let get_abs_cmd_and_real_exe ?opam cmd =
     Logs.debug (fun l -> l "Desired command is named: %s" cmd);
     (* If the command is not absolute like "dune", then we need to find
        the absolute location of it. *)
     let* abs_cmd_p = OS.Cmd.get_tool (Cmd.v cmd) in
     Logs.debug (fun l -> l "Absolute command path is: %a" Fpath.pp abs_cmd_p);
-    let before_ext, ext = Fpath.split_ext abs_cmd_p in
-    let cmd_no_ext_p = if ext = ".exe" then before_ext else abs_cmd_p in
-    let+ real_exe = get_real_exe cmd_no_ext_p in
-    (abs_cmd_p, real_exe)
+    (* Edge case: If ~opam:() then look for authoritative opam first *)
+    let* authoritative_real_exe_opt =
+      if opam = Some () then get_authoritative_opam_exe () else Ok None
+    in
+    let authoritative_real_exe_opt =
+      (* Can only use it if it actually exists *)
+      match authoritative_real_exe_opt with
+      | Some authoritative_real_exe ->
+          if OS.File.is_executable authoritative_real_exe then
+            Some authoritative_real_exe
+          else None
+      | None -> None
+    in
+    (* General case: The -real command is in the same directory *)
+    let* real_exe =
+      match authoritative_real_exe_opt with
+      | Some authoritative_real_exe ->
+          Logs.debug (fun l ->
+              l "Authorative command path is: %a" Fpath.pp
+                authoritative_real_exe);
+          Ok authoritative_real_exe
+      | None ->
+          let before_ext, ext = Fpath.split_ext abs_cmd_p in
+          let cmd_no_ext_p = if ext = ".exe" then before_ext else abs_cmd_p in
+          let* real_p = get_real_exe cmd_no_ext_p in
+          Logs.debug (fun l ->
+              l "Sibling real command path is: %a" Fpath.pp real_p);
+          Ok real_p
+    in
+    Ok (abs_cmd_p, real_exe)
   in
   let+ cmd_and_args =
     match Array.to_list Sys.argv with
@@ -129,14 +180,14 @@ let create_and_setenv_if_necessary () =
             l
               "Detected [opam env ...] invocation. Not using 'env opam env' so \
                Opam can discover the parent shell");
-        let* _abs_cmd_p, real_exe = get_abs_cmd_and_real_exe cmd in
+        let* _abs_cmd_p, real_exe = get_abs_cmd_and_real_exe ~opam:() cmd in
         Ok ([ Fpath.to_string real_exe; "env" ] @ args)
     | [ cmd; "switch" ] when is_opam_exe cmd ->
         Logs.debug (fun l ->
             l
               "Detected [opam switch] invocation. Not using 'env opam switch' \
                so Opam can discover the parent shell");
-        let* _abs_cmd_p, real_exe = get_abs_cmd_and_real_exe cmd in
+        let* _abs_cmd_p, real_exe = get_abs_cmd_and_real_exe ~opam:() cmd in
         Ok [ Fpath.to_string real_exe; "switch" ]
     | cmd :: "switch" :: first_arg :: rest_args
       when is_opam_exe cmd
@@ -146,18 +197,19 @@ let create_and_setenv_if_necessary () =
             l
               "Detected [opam switch --some-option ...] invocation. Not using \
                'env opam switch' so Opam can discover the parent shell");
-        let* _abs_cmd_p, real_exe = get_abs_cmd_and_real_exe cmd in
+        let* _abs_cmd_p, real_exe = get_abs_cmd_and_real_exe ~opam:() cmd in
         Ok ([ Fpath.to_string real_exe; "switch"; first_arg ] @ rest_args)
     | cmd :: "switch" :: "list" :: args when is_opam_exe cmd ->
         Logs.debug (fun l ->
             l
-              "Detected [opam switch list ...] invocation. Not using 'env opam switch' \
-               so Opam can discover the parent shell");
-        let* _abs_cmd_p, real_exe = get_abs_cmd_and_real_exe cmd in
+              "Detected [opam switch list ...] invocation. Not using 'env opam \
+               switch' so Opam can discover the parent shell");
+        let* _abs_cmd_p, real_exe = get_abs_cmd_and_real_exe ~opam:() cmd in
         Ok ([ Fpath.to_string real_exe; "switch"; "list" ] @ args)
     (* CMDLINE_C FORM *)
     | cmd :: args ->
-        let* abs_cmd_p, real_exe = get_abs_cmd_and_real_exe cmd in
+        let opam = if is_opam_exe cmd then Some () else None in
+        let* abs_cmd_p, real_exe = get_abs_cmd_and_real_exe ?opam cmd in
         let* () =
           if is_dune_exe abs_cmd_p then (
             Logs.debug (fun l ->
