@@ -36,3 +36,9 @@ build: [
 ]
 dev-repo: "git+https://github.com/diskuv/dkml-runtime-apps.git"
 x-opam-monorepo-opam-provided: ["dkml-runtime-common"]
+pin-depends: [
+  [
+    "dkml-runtime-common.1.0.2~prerel0"
+    "git+https://github.com/diskuv/dkml-runtime-common.git"
+  ]
+]
