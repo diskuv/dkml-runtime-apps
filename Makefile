@@ -126,4 +126,6 @@ duniverse: $(DUNIVERSE_ARTIFACTS)
 $(DUNIVERSE_ARTIFACTS): with-dkml.opam.locked $(MONOREPO_ARTIFACTS)
 	export OPAMYES=1 OPAMSWITCH='$(OPAMSWITCH)' && \
 	opam monorepo pull --lockfile=$< && \
+	echo "Removing dune_/test to avoid long paths on Windows like: duniverse/dune_/test/blackbox-tests/test-cases/mwe-dune-duplicate-dialect.t/duniverse/dune-configurator.2.7.1/test/dialects.t/bad1" && \
+	rm -rf duniverse/dune_ && \
 	touch $@
