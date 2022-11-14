@@ -17,7 +17,7 @@
 (executable
  (package with-dkml)
  (name with_dkml)
- (public_name with-dkml.exe)
+ (public_name with-dkml)
  ; No PPX! This should compile with the bare minimum:
  ; 1. This is installed in the Diskuv OCaml system `dkml` switch; it should be lightweight
  ;    so less security surface area and less support burden

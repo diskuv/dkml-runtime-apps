@@ -8,5 +8,5 @@
 (executable
  (package dkml-apps)
  (name fswatch)
- (public_name dkml-fswatch.exe)
+ (public_name dkml-fswatch)
  (libraries unix))
