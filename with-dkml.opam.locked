@@ -14,7 +14,7 @@ depends: [
   "crunch" {= "3.3.1" & ?vendor}
   "csexp" {= "1.5.1" & ?vendor}
   "dkml-c-probe" {= "3.0.0" & ?vendor}
-  "dkml-runtime-common" {= "1.0.2~prerel0"}
+  "dkml-runtime-common" {= "1.0.2~prerel7"}
   "dune" {= "2.9.3"}
   "dune-configurator" {= "2.9.3" & ?vendor}
   "fmt" {= "0.9.0+dune" & ?vendor}
@@ -74,8 +74,8 @@ pin-depends: [
     "https://github.com/diskuv/dkml-c-probe/archive/v3.0.0.tar.gz"
   ]
   [
-    "dkml-runtime-common.1.0.2~prerel0"
-    "https://github.com/diskuv/dkml-runtime-common/archive/1.0.2-prerel0.tar.gz"
+    "dkml-runtime-common.1.0.2~prerel7"
+    "https://github.com/diskuv/dkml-runtime-common/releases/download/1.0.2-prerel7/src.tar.gz"
   ]
   [
     "dune-configurator.2.9.3"
@@ -160,11 +160,11 @@ x-opam-monorepo-duniverse-dirs: [
     ]
   ]
   [
-    "https://github.com/diskuv/dkml-runtime-common/archive/1.0.2-prerel0.tar.gz"
+    "https://github.com/diskuv/dkml-runtime-common/releases/download/1.0.2-prerel7/src.tar.gz"
     "dkml-runtime-common"
     [
-      "md5=d1ad17fda37fa3c7707eae107a35d603"
-      "sha512=d731529ae2d938bb9eb2cc980ec25d7c5b9934ba9fe99647bbf2234bc20ed4bdb7eeb6da97e797e60363b7bbff2bf3c1b00c4eea24c6cd095484cf474a6d9ebc"
+      "md5=4fefeb6f108a3e5ed40eec10a36eb71e"
+      "sha512=14e062803b4eb5f58a74ec2e8a59736568304e9554c32e67def7d6228fcfaef8d60d3a16c3d71971fe57887d773e33bb91f55feabc1b147fcc6f9aa077846b1c"
     ]
   ]
   [
