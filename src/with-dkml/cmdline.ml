@@ -146,6 +146,9 @@ let create_and_setenv_if_necessary () =
       (* Can only use it if it actually exists *)
       match authoritative_real_exe_opt with
       | Some authoritative_real_exe ->
+          Logs.debug (fun l ->
+              l "Authoritative command, if any, expected at: %a" Fpath.pp
+                authoritative_real_exe);
           if OS.File.is_executable authoritative_real_exe then
             Some authoritative_real_exe
           else None
@@ -156,7 +159,7 @@ let create_and_setenv_if_necessary () =
       match authoritative_real_exe_opt with
       | Some authoritative_real_exe ->
           Logs.debug (fun l ->
-              l "Authorative command path is: %a" Fpath.pp
+              l "Using authoritative command: %a" Fpath.pp
                 authoritative_real_exe);
           Ok authoritative_real_exe
       | None ->
@@ -164,7 +167,7 @@ let create_and_setenv_if_necessary () =
           let cmd_no_ext_p = if ext = ".exe" then before_ext else abs_cmd_p in
           let* real_p = get_real_exe cmd_no_ext_p in
           Logs.debug (fun l ->
-              l "Sibling real command path is: %a" Fpath.pp real_p);
+              l "Using sibling real command: %a" Fpath.pp real_p);
           Ok real_p
     in
     Ok (abs_cmd_p, real_exe)
