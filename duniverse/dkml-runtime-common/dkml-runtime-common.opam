@@ -1,5 +1,5 @@
 opam-version: "2.0"
-version: "1.0.2~prerel7"
+version: "1.0.2~prerel8"
 synopsis: "Common runtime code used in DKML"
 description: "Common runtime code used in DKML"
 maintainer: ["opensource+diskuv-ocaml@support.diskuv.com"]
@@ -11,8 +11,16 @@ dev-repo: "git+https://github.com/diskuv/dkml-runtime-common.git"
 #   Must not rely on OCaml (ex. diskuvbox) because this
 #   package is a dependency of OCaml compilers like dkml-base-compiler!
 depends: []
-build: []
+#   However if Dune is present, use it. That way this package works in
+#   opam-monorepo. One use of this is for with-dkml in dkml-runtime-apps
+#   that can be a shim for dune.
+depopts: [
+  "dune"
+]
+build: [
+  ["dune" "build" "-p" name] {dune:installed}
+]
 install: [
-  [".\\install.cmd"  "%{_:lib}%"] {os = "win32"}
-  ["./install.sh" "%{_:lib}%"]  {!(os = "win32")}
+  [".\\install.cmd"  "%{_:lib}%"] { !dune:installed &   os = "win32"}
+  ["./install.sh" "%{_:lib}%"]  {   !dune:installed & !(os = "win32")}
 ]

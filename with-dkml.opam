@@ -35,4 +35,3 @@ build: [
   ["dune" "install" "-p" name "--create-install-files" name]
 ]
 dev-repo: "git+https://github.com/diskuv/dkml-runtime-apps.git"
-x-opam-monorepo-opam-provided: ["dkml-runtime-common"]

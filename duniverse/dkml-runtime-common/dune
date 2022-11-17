@@ -1,0 +1,21 @@
+; This is not called by dkml-runtime-common.opam, because dkml-runtime-common
+; is required _before_ dune is built (the dune shim uses it).
+
+; However for opam-monorepo builds this dune file is useful! So we provide
+; a dune build file here
+
+(library
+  (name dkml_runtime_common)
+  (public_name dkml-runtime-common)
+  (modules))
+
+(install
+ (package dkml-runtime-common)
+ (section lib)
+ (files
+  ; Since .template.dkmlroot goes into library, we drop the leading dot to avoid any future findlib problems
+  (.template.dkmlroot as template.dkmlroot)
+  (unix/_common_tool.sh as unix/_common_tool.sh)
+  (unix/_within_dev.sh as unix/_within_dev.sh)
+  (unix/crossplatform-functions.sh as unix/crossplatform-functions.sh)
+  (all/emptytop/dune-project as all/emptytop/dune-project)))

@@ -14,7 +14,7 @@ depends: [
   "crunch" {= "3.3.1" & ?vendor}
   "csexp" {= "1.5.1" & ?vendor}
   "dkml-c-probe" {= "3.0.0" & ?vendor}
-  "dkml-runtime-common" {= "1.0.2~prerel7"}
+  "dkml-runtime-common" {= "1.0.2~prerel8" & ?vendor}
   "dune" {= "2.9.3"}
   "dune-configurator" {= "2.9.3" & ?vendor}
   "fmt" {= "0.9.0+dune" & ?vendor}
@@ -74,8 +74,8 @@ pin-depends: [
     "https://github.com/diskuv/dkml-c-probe/archive/v3.0.0.tar.gz"
   ]
   [
-    "dkml-runtime-common.1.0.2~prerel7"
-    "https://github.com/diskuv/dkml-runtime-common/releases/download/1.0.2-prerel7/src.tar.gz"
+    "dkml-runtime-common.1.0.2~prerel8"
+    "git+file:///Volumes/ExtremeSSD/Source/diskuv-communicator-darwin/vendor/diskuv-communicator-kernel/vendor/diskuv-ocaml/vendor/drc/.git#ebebdf98c8d0f050276d64e66d8dfad3aec6c03e"
   ]
   [
     "dune-configurator.2.9.3"
@@ -137,6 +137,10 @@ pin-depends: [
 ]
 x-opam-monorepo-duniverse-dirs: [
   [
+    "git+file:///Volumes/ExtremeSSD/Source/diskuv-communicator-darwin/vendor/diskuv-communicator-kernel/vendor/diskuv-ocaml/vendor/drc/.git#ebebdf98c8d0f050276d64e66d8dfad3aec6c03e"
+    "dkml-runtime-common"
+  ]
+  [
     "https://erratique.ch/software/cmdliner/releases/cmdliner-1.1.1.tbz"
     "cmdliner"
     [
@@ -157,14 +161,6 @@ x-opam-monorepo-duniverse-dirs: [
     [
       "md5=6cb75ec4f6d6de79904177c42e38fbe1"
       "sha512=05e71a0605d93d5161ef9bffcc6264a205fcc89e497e726db9e622c7e61bc505f5973acbffe8c949186c26c9b05fd0b7b4e2ac4376754fb8700e428a391f1a76"
-    ]
-  ]
-  [
-    "https://github.com/diskuv/dkml-runtime-common/releases/download/1.0.2-prerel7/src.tar.gz"
-    "dkml-runtime-common"
-    [
-      "md5=4fefeb6f108a3e5ed40eec10a36eb71e"
-      "sha512=14e062803b4eb5f58a74ec2e8a59736568304e9554c32e67def7d6228fcfaef8d60d3a16c3d71971fe57887d773e33bb91f55feabc1b147fcc6f9aa077846b1c"
     ]
   ]
   [
@@ -324,6 +320,5 @@ x-opam-monorepo-duniverse-dirs: [
     ]
   ]
 ]
-x-opam-monorepo-opam-provided: ["dkml-runtime-common"]
 x-opam-monorepo-root-packages: ["dkml-runtimelib" "with-dkml"]
 x-opam-monorepo-version: "0.3"
