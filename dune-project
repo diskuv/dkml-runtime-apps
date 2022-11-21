@@ -30,8 +30,8 @@
   (fpath        (>= 0.7.0))
   (rresult      (>= 0.7.0))
   dkml-compiler-env
-  (dkml-runtime-common (>= 1.0.2~prerel7))
-  dkml-runtime-distribution
+  (dkml-runtime-common        (>= 1.0.2~prerel7))
+  (dkml-runtime-distribution  (>= 1.0.2~prerel7))
   (crunch       (>= 3.2.0))))
 
 (package
