@@ -75,7 +75,7 @@ pin-depends: [
   ]
   [
     "dkml-runtime-common.1.0.2~prerel9"
-    "git+https://github.com/diskuv/dkml-runtime-common.git#f3d60e1700f15f8717e6385aa32eeb634006bea9"
+    "git+https://github.com/diskuv/dkml-runtime-common.git#da48700c6efff66dc3b65c0475c99996cf076138"
   ]
   [
     "dune-configurator.2.9.3"
@@ -160,7 +160,7 @@ x-opam-monorepo-duniverse-dirs: [
     ]
   ]
   [
-    "git+https://github.com/diskuv/dkml-runtime-common.git#f3d60e1700f15f8717e6385aa32eeb634006bea9"
+    "git+https://github.com/diskuv/dkml-runtime-common.git#da48700c6efff66dc3b65c0475c99996cf076138"
     "dkml-runtime-common"
   ]
   [

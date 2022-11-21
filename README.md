@@ -21,8 +21,14 @@ $ make duniverse
 ## Upgrading
 
 ```console
-$ # Will not work on Windows until Opam Monorepo works on Windows
+# Will not work on Windows until Opam Monorepo works on Windows
+
 $ opam update
+
+# Optional pins. If you need to test untagged dependencies.
+$ opam pin dkml-runtime-common git+https://github.com/diskuv/dkml-runtime-common.git --no-action
+$ opam pin dkml-runtime-distribution git+https://github.com/diskuv/dkml-runtime-distribution.git --no-action
+
 $ touch with-dkml.opam
 $ make duniverse
 ```

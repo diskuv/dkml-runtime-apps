@@ -221,13 +221,30 @@ set_dksdkcachedir() {
 # Sets the location of the opam executable.
 # Prefers ~/opt/opam/bin/opam[-real]{.exe}; otherwise looks in the PATH. The
 # [-real] suffix is preferred the most.
+# Does nothing if OPAMEXE already set.
 #
 # Inputs:
 # - env:OPAMHOME - If specified, use <OPAMHOME>/bin/opam or <OPAMHOME>/bin/opam.exe
+# - env:OPAMEXE - Optional. The location of opam-real or opam. If set this
+#   function does nothing
+# - env:OPAMEXE_OR_HOME - Optional. If a directory, can be used instead of OPAMHOME above.
+#   If an executable, can be used instead of OPAMEXE above.
 # Outputs:
 # - env:OPAMEXE - The location of opam or opam.exe
 # Exits with non-zero exit code on error
 set_opamexe() {
+    if [ -n "${OPAMEXE:-}" ]; then
+        return
+    fi
+    if [ -n "${OPAMEXE_OR_HOME:-}" ]; then
+        if [ -d "${OPAMEXE_OR_HOME:-}" ]; then
+            # shellcheck disable=SC2034
+            OPAMHOME=$OPAMEXE_OR_HOME
+        elif [ -x "${OPAMEXE_OR_HOME:-}" ]; then
+            OPAMEXE=$OPAMEXE_OR_HOME
+            return
+        fi
+    fi
     if [ -n "${OPAMHOME:-}" ]; then
         if [ -e "$OPAMHOME/bin/opam-real.exe" ]; then
             OPAMEXE="$OPAMHOME/bin/opam-real.exe"

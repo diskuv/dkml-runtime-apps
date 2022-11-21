@@ -3,12 +3,11 @@ version: "1.0.2~prerel9"
 synopsis: "Common runtime code used in DKML"
 description: "Common runtime code used in DKML.
 
-This package has no dependencies and is what you should use to build shims
-of Dune or to include as dependencies of base compilers.
+This package has no dependencies and is what you should include
+in dependencies of custom OCaml compilers.
 
-Even though the name of this is dkml-runtime-common-native to access the
-runtime code you look in the 'lib/dkml-runtime-common' folder of your
-Opam switch or findlib installation.
+The runtime code will be available in the 'lib/dkml-runtime-common-native' folder
+of your Opam switch or findlib installation.
 
 If you use opam-monorepo you should install dkml-runtime-common instead."
 maintainer: ["opensource+diskuv-ocaml@support.diskuv.com"]
@@ -17,15 +16,10 @@ license: "Apache-2.0"
 homepage: "https://github.com/diskuv/dkml-runtime-common"
 bug-reports: "https://github.com/diskuv/dkml-runtime-common/issues"
 dev-repo: "git+https://github.com/diskuv/dkml-runtime-common.git"
-conflict-class: "dkml-runtime-common-impls"
 #   Must not rely on OCaml (ex. diskuvbox or dune) because this
 #   package is a dependency of OCaml compilers like dkml-base-compiler!
 depends: []
-depopts: [
-  # This is to stop the warning when we use %{dkml-runtime-common:lib}%
-  "dkml-runtime-common"
-]
 install: [
-  [".\\install.cmd" "%{lib}%\\dkml-runtime-common"] {  os = "win32"}
-  ["./install.sh"   "%{lib}%/dkml-runtime-common"]  {!(os = "win32")}
+  [".\\install.cmd" "%{_:lib}%"] {  os = "win32"}
+  ["./install.sh"   "%{_:lib}%"] {!(os = "win32")}
 ]
