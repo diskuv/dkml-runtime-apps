@@ -324,12 +324,27 @@ let set_msvc_entries cache_keys =
         | Ok (Ok setvars) ->
             do_set setvars;
 
-            (* Save the cache miss so it is a cache hit next time *)
+            (* Save the cache miss so it is a cache hit next time.
+
+               However with high concurrency it is possible to have
+               a race condition. On Windows that will appear as a
+               [exception Sys_error("Permission denied")] as two
+               processes are trying to write to the same file.
+               Since this is just a cache, it is fine if we drop it
+               (although we should say why!) *)
             OS.Dir.create cache_dir >>= fun _already_exists ->
             Logs.info (fun l ->
                 l "Saving compiler cache entry %a" Fpath.pp cache_file);
 
-            Sexp.save_hum (Fpath.to_string cache_file) setvars;
+            (try Sexp.save_hum (Fpath.to_string cache_file) setvars
+             with Sys_error _ ->
+               (* Sys_error says not to do a literal pattern match. So
+                  can't match: Sys_error("Permission denied") *)
+               Logs.debug (fun l ->
+                   l
+                     "Race condition while writing compiler cache entry. \
+                      Dropping cache insert"));
+
             Ok cache_keys
         | Ok (Error _ as err) -> err
         | Error _ as err -> err)
