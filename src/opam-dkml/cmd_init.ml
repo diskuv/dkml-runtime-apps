@@ -61,8 +61,6 @@ let run f_setup localdir_fp_opt buildtype yes non_system_compiler =
       Rresult.R.error_to_msg ~pp_error:Fmt.string
         (Dkml_c_probe.C_abi.V2.get_abi_name ())
       >>= fun target_abi ->
-      (* Figure out location of with-dkml *)
-      OS.Cmd.get_tool (Cmd.v "with-dkml") >>= fun with_dkml_fp ->
       (* Figure out OPAMHOME containing bin/opam *)
       OS.Cmd.get_tool (Cmd.v "opam") >>= fun opam_fp ->
       let opam_bin1_fp, _ = Fpath.split_base opam_fp in
@@ -105,8 +103,6 @@ let run f_setup localdir_fp_opt buildtype yes non_system_compiler =
              Fpath.to_string localdir_fp;
              "-o";
              Fpath.to_string opam_home_fp;
-             "-x";
-             Fpath.to_string with_dkml_fp;
              "-m";
              "conf-withdkml";
            ]
