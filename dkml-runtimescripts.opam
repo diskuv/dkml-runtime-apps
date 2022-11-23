@@ -43,15 +43,3 @@ pin-depends: [
     "git+https://github.com/diskuv/dkml-compiler.git"
   ]
 ]
-extra-source "dl/dkml-runtime-common.tar.gz" {
-  src: "https://github.com/diskuv/dkml-runtime-common/archive/refs/tags/1.0.2-prerel17.tar.gz"
-  checksum: [
-    "sha256=233650e77ad246322625937d6390ec36261aef8c6183215353f7a5b6f1d95831"
-  ]
-}
-extra-source "dl/dkml-runtime-distribution.tar.gz" {
-  src: "https://github.com/diskuv/dkml-runtime-distribution/archive/refs/tags/1.0.2-prerel17.tar.gz"
-  checksum: [
-    "sha256=3433a5499ee51100edb6621ee93e79417fe8849a3b5217912ef76a7932c029eb"
-  ]
-}
