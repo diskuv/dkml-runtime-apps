@@ -20,34 +20,35 @@ let find_authoritative_opam_exe =
             Some Fpath.(v home / ".local" / "bin" / "opam")
         | _ -> None))
 
-let is_basename_of_filename_in_search_list ~search_list filename =
+let is_basename_of_filename_in_search_list ~search_list_lowercase filename =
   match Fpath.of_string filename with
   | Ok argv0_p ->
-      let n = Fpath.filename argv0_p in
-      List.mem n search_list
+      let n = String.Ascii.lowercase @@ Fpath.filename argv0_p in
+      List.mem n search_list_lowercase
   | Error _ -> false
 
 let is_with_dkml_exe filename =
-  let search_list =
+  let search_list_lowercase =
     [
       "with_dkml";
       "with_dkml.exe";
       "with-dkml";
       "with-dkml.exe";
-      (* DOS 8.3 *)
-      "WITH-D~1.EXE";
+      (* DOS 8.3: WITH-D~1.EXE *)
+      "with-d~1";
+      "with-d~1.exe";
     ]
   in
-  is_basename_of_filename_in_search_list ~search_list filename
+  is_basename_of_filename_in_search_list ~search_list_lowercase filename
 
 let is_dune_exe path =
-  let search_list = [ "dune"; "dune.exe" ] in
+  let search_list_lowercase = [ "dune"; "dune.exe" ] in
   let n = Fpath.filename path in
-  List.mem n search_list
+  List.mem n search_list_lowercase
 
 let is_opam_exe filename =
-  let search_list = [ "opam"; "opam.exe" ] in
-  is_basename_of_filename_in_search_list ~search_list filename
+  let search_list_lowercase = [ "opam"; "opam.exe" ] in
+  is_basename_of_filename_in_search_list ~search_list_lowercase filename
 
 let set_dune_env () =
   let ( let* ) = Rresult.R.( >>= ) in
