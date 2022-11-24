@@ -29,7 +29,14 @@ let is_basename_of_filename_in_search_list ~search_list filename =
 
 let is_with_dkml_exe filename =
   let search_list =
-    [ "with_dkml"; "with_dkml.exe"; "with-dkml"; "with-dkml.exe" ]
+    [
+      "with_dkml";
+      "with_dkml.exe";
+      "with-dkml";
+      "with-dkml.exe";
+      (* DOS 8.3 *)
+      "WITH-D~1.EXE";
+    ]
   in
   is_basename_of_filename_in_search_list ~search_list filename
 
