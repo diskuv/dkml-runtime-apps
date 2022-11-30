@@ -32,7 +32,7 @@
   dkml-compiler-env
   (dkml-runtime-common        (>= 1.0.2~prerel7))
   (dkml-runtime-distribution  (>= 1.0.2~prerel7))
-  (crunch       (>= 3.2.0))))
+  (crunch       (>= 3.3.1))))
 
 (package
  (name with-dkml)
@@ -44,7 +44,7 @@
   (logs             (>= 0.7.0))
   (fmt              (>= 0.8.9))
   (sha              (>= 1.15.2))
-  (crunch           (>= 3.2.0))))
+  (crunch           (>= 3.3.1))))
 
 (package
  (name dkml-apps)

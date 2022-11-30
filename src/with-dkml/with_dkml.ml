@@ -120,8 +120,8 @@ let remove_microsoft_visual_studio_entries () =
   prune_path_of_microsoft_visual_studio ()
 
 (** [get_dos83_short_path p] gets the DOS 8.3 short form of the path [p],
-    if the DOS 8.3 short form exists. 
-      
+    if the DOS 8.3 short form exists.
+
     https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/fsutil-8dot3name
     controls whether DOS 8.3 short forms exist on a drive ("volume").
 
