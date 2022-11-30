@@ -379,8 +379,6 @@ set_opamrootdir() {
 #     The path to the switch **not including any _opam subfolder** that works as an argument to `exec_in_platform` -OR-
 #     The name of a global switch that represents the build directory.
 #     OPAMSWITCHNAME_EXPAND works inside or outside of a container.
-# - env:WITHDKMLEXE_BUILDHOST - The location of the tools binary 'with-dkml.exe'. The binary does not
-#     need to exist yet (the tools switch may not have been created yet).
 set_opamswitchdir_of_system() {
     set_opamswitchdir_of_system_PLATFORM=$1
     shift
@@ -420,9 +418,6 @@ set_opamswitchdir_of_system() {
         # shellcheck disable=SC2034
         OPAMSWITCHFINALDIR_BUILDHOST="$OPAMROOTDIR_BUILDHOST${OS_DIR_SEP}${set_opamswitchdir_of_system_SWITCHBASE_UNAMBIGUOUS}"
     fi
-    # Set WITHDKMLEXE_BUILDHOST
-    #   shellcheck disable=SC2034
-    WITHDKMLEXE_BUILDHOST="$OPAMSWITCHFINALDIR_BUILDHOST${OS_DIR_SEP}bin${OS_DIR_SEP}with-dkml.exe"
 }
 
 # [set_opamrootandswitchdir TARGETLOCAL_OPAMSWITCH TARGETGLOBAL_OPAMSWITCH]
@@ -642,9 +637,15 @@ print_opam_logs_on_error() {
         if [ "${DKML_BUILD_PRINT_LOGS_ON_ERROR:-}" = ON ]; then
             printf "\n\n========= [START OF TROUBLESHOOTING] ===========\n\n" >&2
 
+            if find . -maxdepth 0 -mmin -240 2>/dev/null >/dev/null; then
+                FINDARGS="-mmin -240" # is -mmin supported? BSD (incl. macOS), MSYS2, GNU
+            else
+                FINDARGS="-mtime -1" # use 1 day instead. Solaris
+            fi
+
             # print _one_ of the environment
-            # shellcheck disable=SC2030
-            find "$OPAMROOTDIR_BUILDHOST"/log -mindepth 1 -maxdepth 1 -name "*.env" ! -name "log-*.env" ! -name "ocaml-variants-*.env" | head -n1 | while read -r dump_on_error_LOG; do
+            # shellcheck disable=SC2030 disable=SC2086
+            find "$OPAMROOTDIR_BUILDHOST"/log -mindepth 1 -maxdepth 1 $FINDARGS -name "*.env" ! -name "log-*.env" ! -name "ocaml-variants-*.env" | head -n1 | while read -r dump_on_error_LOG; do
                 # shellcheck disable=SC2031
                 dump_on_error_BLOG=$(basename "$dump_on_error_LOG")
                 printf "\n\n========= [TROUBLESHOOTING] %s ===========\n# To save space, this is only one of the many similar Opam environment files that have been printed.\n\n" "$dump_on_error_BLOG" >&2
@@ -652,7 +653,8 @@ print_opam_logs_on_error() {
             done
 
             # print all output files (except ocaml-variants)
-            find "$OPAMROOTDIR_BUILDHOST"/log -mindepth 1 -maxdepth 1 -name "*.out" ! -name "log-*.out" ! -name "ocaml-variants-*.out" | while read -r dump_on_error_LOG; do
+            # shellcheck disable=SC2086
+            find "$OPAMROOTDIR_BUILDHOST"/log -mindepth 1 -maxdepth 1 $FINDARGS -name "*.out" ! -name "log-*.out" ! -name "ocaml-variants-*.out" | while read -r dump_on_error_LOG; do
                 dump_on_error_BLOG=$(basename "$dump_on_error_LOG")
                 printf "\n\n========= [TROUBLESHOOTING] %s ===========\n\n" "$dump_on_error_BLOG" >&2
                 cat "$dump_on_error_LOG" >&2

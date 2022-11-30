@@ -109,7 +109,7 @@ set_dkmlparenthomedir() {
 # - env:DKMLBINPATHS_BUILDHOST - set if Diskuv OCaml installed. Paths will be in Windows (semicolon separated) or Unix (colon separated) format
 # - env:DKMLBINPATHS_UNIX - set if Diskuv OCaml installed. Paths will be in Unix (colon separated) format
 # - env:DKMLMSYS2DIR_BUILDHOST - set if DiskuvO Caml installed MSYS2. Directory will be in Windows format
-# Exit Code:
+# Return Code:
 # - 1 if DiskuvOCaml is not installed
 autodetect_dkmlvars() {
     autodetect_dkmlvars_DiskuvOCamlVarsVersion_Override=${DiskuvOCamlVarsVersion:-}
@@ -2163,6 +2163,59 @@ autodetect_compiler_vsdev() {
     } > "$autodetect_compiler_OUTPUTFILE".tmp
     "$DKMLSYS_CHMOD" +x "$autodetect_compiler_OUTPUTFILE".tmp
     "$DKMLSYS_MV" "$autodetect_compiler_OUTPUTFILE".tmp "$autodetect_compiler_OUTPUTFILE"
+}
+
+# Set WITHDKMLEXE_BUILDHOST and WITHDKMLEXE_DOS83_OR_BUILDHOST.
+#
+# The with-dkml binary should have been installed by the DKML or DKSDK installer
+# before this function is used. The canonical location is the DKSDK noabi/dkmlexe/bin/
+# directory or in the bin/ directory of the DKML home.
+#
+# Inputs:
+# - env:DKSDK_NOABI_DIR - Optional. Set by DKSDK as the noabi/ directory.
+# - env:WITHDKMLEXE_BUILDHOST - If already set, will leave it unchanged.
+#
+# Outputs:
+# - env:WITHDKMLEXE_BUILDHOST - The location of the binary 'with-dkml'
+# - env:WITHDKMLEXE_DOS83_OR_BUILDHOST - On Windows if on a DOS 8.3 supporting
+#   drive then the DOS 8.3 shortname of with-dkml.exe. Otherwise the location
+#   of 'with-dkml'
+#
+# Return Code:
+# - 1 if no DKML home and no DKSDK noabi/ directory set
+# - 2 if with-dkml not found at canonical location
+autodetect_withdkmlexe() {
+    if is_unixy_windows_build_machine; then
+        autodetect_withdkmlexe_SEP=\\
+    else
+        autodetect_withdkmlexe_SEP=/
+    fi
+    if [ -z "${WITHDKMLEXE_BUILDHOST:-}" ]; then
+        # Set DKMLHOME_UNIX if available
+        autodetect_dkmlvars || true
+        if [ -n "${DKSDK_NOABI_DIR:-}" ]; then
+            WITHDKMLEXE_BUILDHOST="$DKSDK_NOABI_DIR${autodetect_withdkmlexe_SEP}dkmlexe${autodetect_withdkmlexe_SEP}bin${autodetect_withdkmlexe_SEP}with-dkml"
+        elif [ -n "${DKMLHOME_BUILDHOST:-}" ]; then
+            WITHDKMLEXE_BUILDHOST="$DKMLHOME_BUILDHOST${autodetect_withdkmlexe_SEP}bin${autodetect_withdkmlexe_SEP}with-dkml"
+        else
+            return 1
+        fi
+        if is_unixy_windows_build_machine; then
+            WITHDKMLEXE_BUILDHOST="${WITHDKMLEXE_BUILDHOST}.exe"
+        fi
+    fi
+    if [ ! -x "$WITHDKMLEXE_BUILDHOST" ]; then
+        return 2
+    fi
+    if [ -x /usr/bin/cygpath ]; then
+        # Note: cygpath -ad will print a warning if the file does not exist.
+        #  So we checked above (`return 2`)
+        WITHDKMLEXE_DOS83_OR_BUILDHOST=$(/usr/bin/cygpath -ad "$WITHDKMLEXE_BUILDHOST")
+    else
+        #   shellcheck disable=SC2034
+        WITHDKMLEXE_DOS83_OR_BUILDHOST=$WITHDKMLEXE_BUILDHOST
+    fi
+    return 0
 }
 
 # A function that will execute the shell command with error detection enabled and trace

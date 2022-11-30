@@ -1,5 +1,5 @@
 opam-version: "2.0"
-version: "1.0.2~prerel9"
+version: "1.0.2~prerel23"
 synopsis: "Common runtime code used in DKML"
 description: "Common runtime code used in DKML.
 

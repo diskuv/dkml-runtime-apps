@@ -14,9 +14,9 @@ depends: [
   "crunch" {= "3.3.1" & ?vendor}
   "csexp" {= "1.5.1" & ?vendor}
   "dkml-c-probe" {= "3.0.0" & ?vendor}
-  "dkml-runtime-common" {= "1.0.2~prerel9" & ?vendor}
+  "dkml-runtime-common" {= "1.0.2~prerel23" & ?vendor}
   "dune" {= "2.9.3"}
-  "dune-configurator" {= "2.9.3" & ?vendor}
+  "dune-configurator" {= "2.9.3+msvc" & ?vendor}
   "fmt" {= "0.9.0+dune" & ?vendor}
   "fpath" {= "0.7.3+dune" & ?vendor}
   "logs" {= "0.7.0+dune2" & ?vendor}
@@ -74,11 +74,11 @@ pin-depends: [
     "https://github.com/diskuv/dkml-c-probe/archive/v3.0.0.tar.gz"
   ]
   [
-    "dkml-runtime-common.1.0.2~prerel9"
-    "git+https://github.com/diskuv/dkml-runtime-common.git#da48700c6efff66dc3b65c0475c99996cf076138"
+    "dkml-runtime-common.1.0.2~prerel23"
+    "git+https://github.com/diskuv/dkml-runtime-common.git#16c8b610dd121524ae0504ee4f1aea2566680d8d"
   ]
   [
-    "dune-configurator.2.9.3"
+    "dune-configurator.2.9.3+msvc"
     "https://github.com/ocaml/dune/releases/download/2.9.3/dune-site-2.9.3.tbz"
   ]
   [
@@ -160,7 +160,7 @@ x-opam-monorepo-duniverse-dirs: [
     ]
   ]
   [
-    "git+https://github.com/diskuv/dkml-runtime-common.git#da48700c6efff66dc3b65c0475c99996cf076138"
+    "git+https://github.com/diskuv/dkml-runtime-common.git#16c8b610dd121524ae0504ee4f1aea2566680d8d"
     "dkml-runtime-common"
   ]
   [
