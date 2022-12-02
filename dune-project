@@ -31,21 +31,21 @@
   (re           (>= 1.10.0))
   (rresult      (>= 0.7.0))
   dkml-compiler-env
-  (dkml-runtime-common        (>= 1.0.2~prerel7))
-  (dkml-runtime-distribution  (>= 1.0.2~prerel7))
+  (dkml-runtime-common        (= :version))
+  (dkml-runtime-distribution  (= :version))
   (crunch       (>= 3.3.1))))
 
 (package
  (name with-dkml)
  (synopsis "Gives Windows access to Opam and MSYS2 environments")
  (depends
-  (ocaml            (>= 4.12.1))
-  (dkml-runtimelib  (= :version))
-  (dkml-runtime-common (>= 1.0.2~prerel7))
-  (logs             (>= 0.7.0))
-  (fmt              (>= 0.8.9))
-  (sha              (>= 1.15.2))
-  (crunch           (>= 3.3.1))))
+  (ocaml                (>= 4.12.1))
+  (dkml-runtimelib      (= :version))
+  (dkml-runtime-common  (= :version))
+  (logs                 (>= 0.7.0))
+  (fmt                  (>= 0.8.9))
+  (sha                  (>= 1.15.2))
+  (crunch               (>= 3.3.1))))
 
 (package
  (name dkml-apps)
