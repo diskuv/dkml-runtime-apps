@@ -28,6 +28,7 @@
   (ocaml        (>= 4.12.1))
   (bos          (>= 0.2.0))
   (fpath        (>= 0.7.0))
+  (re           (>= 1.10.0))
   (rresult      (>= 0.7.0))
   dkml-compiler-env
   (dkml-runtime-common        (>= 1.0.2~prerel7))

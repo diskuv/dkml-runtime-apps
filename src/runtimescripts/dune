@@ -1,7 +1,7 @@
 (library
  (name dkml_runtimescripts)
  (public_name dkml-runtimescripts)
- (libraries fpath rresult bos))
+ (libraries bos fpath re rresult))
 
 (rule
  (target dkml_scripts.ml)

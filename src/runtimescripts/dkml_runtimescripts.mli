@@ -1,1 +1,2 @@
-val extract_dkml_scripts : Fpath.t -> (unit, Rresult.R.msg) result
+val extract_dkml_scripts :
+  dkmlversion:string -> Fpath.t -> (unit, Rresult.R.msg) result
