@@ -1,0 +1,16 @@
+(rule
+ (targets c-compile-exe.lines.txt)
+ (action
+  (run config/discover.exe)))
+
+(rule
+ (target confdir%{ext_exe})
+ (deps confdir.c)
+ (action
+  (progn
+   (run %{read-lines:c-compile-exe.lines.txt}))))
+
+(install
+ (package dkml-apps)
+ (section bin)
+ (files (confdir%{ext_exe} as dkml-confdir)))
