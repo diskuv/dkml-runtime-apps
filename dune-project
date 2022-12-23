@@ -52,7 +52,9 @@
  (synopsis "CLI applications available in Diskuv OCaml installations")
  (description "'dkml-fswatch' is a Windows port of fswatch suitable for 'dune --watch'.")
  (depends
-  (ocaml (>= 4.12.1))))
+  (ocaml              (>= 4.12.1))
+  (bos                (>= 0.2.0))
+  (dune-configurator  (>= 2.9.3))))
 
 (package
  (name opam-dkml)
