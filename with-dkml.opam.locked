@@ -14,7 +14,7 @@ depends: [
   "crunch" {= "3.3.1" & ?vendor}
   "csexp" {= "1.5.1" & ?vendor}
   "dkml-c-probe" {= "3.0.0" & ?vendor}
-  "dkml-runtime-common" {= "1.0.2~prerel23" & ?vendor}
+  "dkml-runtime-common" {= "1.1.0~prerel20" & ?vendor}
   "dune" {= "2.9.3"}
   "dune-configurator" {= "2.9.3+msvc" & ?vendor}
   "fmt" {= "0.9.0+dune" & ?vendor}
@@ -74,8 +74,8 @@ pin-depends: [
     "https://github.com/diskuv/dkml-c-probe/archive/v3.0.0.tar.gz"
   ]
   [
-    "dkml-runtime-common.1.0.2~prerel23"
-    "git+https://github.com/diskuv/dkml-runtime-common.git#16c8b610dd121524ae0504ee4f1aea2566680d8d"
+    "dkml-runtime-common.1.1.0~prerel20"
+    "git+https://github.com/diskuv/dkml-runtime-common.git#04cf86ba5e7894c284648694733a65cd3636f803"
   ]
   [
     "dune-configurator.2.9.3+msvc"
@@ -135,6 +135,12 @@ pin-depends: [
     "https://github.com/ocaml/stdlib-shims/releases/download/0.3.0/stdlib-shims-0.3.0.tbz"
   ]
 ]
+x-opam-monorepo-cli-args: [
+  "--lockfile=with-dkml.opam.locked"
+  "--ocaml-version=4.12.1"
+  "dkml-runtimelib"
+  "with-dkml"
+]
 x-opam-monorepo-duniverse-dirs: [
   [
     "https://erratique.ch/software/cmdliner/releases/cmdliner-1.1.1.tbz"
@@ -160,7 +166,7 @@ x-opam-monorepo-duniverse-dirs: [
     ]
   ]
   [
-    "git+https://github.com/diskuv/dkml-runtime-common.git#16c8b610dd121524ae0504ee4f1aea2566680d8d"
+    "git+https://github.com/diskuv/dkml-runtime-common.git#04cf86ba5e7894c284648694733a65cd3636f803"
     "dkml-runtime-common"
   ]
   [

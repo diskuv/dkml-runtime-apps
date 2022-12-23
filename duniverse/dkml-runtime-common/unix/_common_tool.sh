@@ -105,45 +105,6 @@ WRAP_COMMANDS_CACHE_KEY=wrap-commands."$dkml_root_version"
 create_workdir
 trap 'PATH=/usr/bin:/bin rm -rf "$WORK"' EXIT
 
-#####
-# BEGIN Opam
-#
-# Windows
-# -------
-#
-# Terminology: "port" is msvc or mingw, and described in https://discuss.ocaml.org/t/ann-ocaml-opam-images-for-docker-for-windows/8179
-#
-# We want to consistently use MSVC compiled libraries and executables so we don't have to debug hard-to-resolve cross-compiler
-# issues ... we are using MSVC elsewhere (especially CMake) since it is far more widely adopted; it has way more package support.
-# The only exception is when we are trying to compile a native Windows opam.exe within Cygwin. When using our Cygwin setup and the
-# 4.12.0+msvc64 variant the ./autoconf for the package `ocaml-variants` detects the MSVC compiler and the Cygwin ld.exe which causes
-# the build to break. So for bootstrapping opam.exe we use MinGW. (We don't expect this to happen with MSYS2 since MSYS2 is tested
-# for this common cross-compiling on Windows scenario).
-#
-# We are downloading (install-world.ps1 / moby-download-docker-image.sh) the Docker `amd64`
-# architecture (https://hub.docker.com/r/ocaml/opam/tags?page=1&ordering=last_updated&name=windows)
-# for our binaries.
-# shellcheck disable=SC2034
-OPAM_ARCH_IN_WINDOWS=amd64
-#
-# Which port we will use for all the switches in Windows.
-#
-# shellcheck disable=SC2034
-OPAM_PORT_FOR_SWITCHES_IN_WINDOWS=msvc
-#
-# Which variant we will use for all the switches in Windows.
-# Pick from a msys2 variant in $DiskuvOCamlHome/etc/repos/diskuv-opam-repository
-# that aligns with the OPAM_PORT_FOR_SWITCHES_IN_WINDOWS.
-set_ocaml_variant_for_windows_switches() {
-    set_ocaml_variant_for_windows_switches_VERSION="$1"
-    shift
-    export OCAML_VARIANT_FOR_SWITCHES_IN_32BIT_WINDOWS="$set_ocaml_variant_for_windows_switches_VERSION"+options+dkml+msvc32
-    export OCAML_VARIANT_FOR_SWITCHES_IN_64BIT_WINDOWS="$set_ocaml_variant_for_windows_switches_VERSION"+options+dkml+msvc64
-}
-#
-# END
-#####
-
 # Execute a command either for the dev environment or for the
 # reproducible sandbox corresponding to `$PLATFORM`
 # which must be defined.
