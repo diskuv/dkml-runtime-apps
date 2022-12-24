@@ -39,8 +39,8 @@ SWITCH_ARTIFACTS = _opam/.opam-switch/switch-config
 switch: $(SWITCH_ARTIFACTS)
 .PHONY: switch
 $(SWITCH_ARTIFACTS):
-	export OPAMYES=1 && if [ -x "$$(opam var root)/plugins/bin/opam-dkml" ]; then \
-		opam dkml init ; \
+	export OPAMYES=1 && if command -v dkml; then \
+		dkml init ; \
 	else \
 		opam switch create . --formula '["ocaml" {= "$(VERSION_OCAML)"} "dune" {= "$(VERSION_DUNE)"}]' --no-install --repos dune-universe=git+https://github.com/dune-universe/opam-overlays.git,diskuv=git+https://github.com/diskuv/diskuv-opam-repository.git,default; \
 	fi

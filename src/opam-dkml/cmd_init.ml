@@ -48,7 +48,7 @@ let run f_setup localdir_fp_opt buildtype yes non_system_compiler =
 
          Why installed dkmlversion?
 
-         Because when we do 'opam dkml init' the
+         Because when we do 'dkml init' the
          create-opam-switch.sh has to have a versioned opam repository for
          fdopen-mingw in <DKML_home>/repos/<version> ... and that version has
          to exist. Don't assume that just because we compiled opam-dkml.exe
