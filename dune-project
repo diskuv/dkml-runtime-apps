@@ -57,9 +57,9 @@
   (dune-configurator  (>= 2.9.3))))
 
 (package
- (name opam-dkml)
- (synopsis "Opam plugin for Diskuv OCaml (DKML)")
- (description "An opam plugin where 'opam dkml init' creates a local Windows-friendly Opam switch configured with DKML Opam repositories and options")
+ (name dkml-exe-lib)
+ (synopsis "Library containing all the code for the 'dkml' (Diskuv OCaml) executable")
+ (description "'dkml init' creates a local Windows-friendly Opam switch configured with DKML Opam repositories and options")
  (depends
   (ocaml                (>= 4.12.1))
   (dkml-runtimelib      (= :version))
@@ -67,3 +67,17 @@
   (logs                 (>= 0.7.0))
   (fmt                  (>= 0.8.9))
   (cmdliner             (>= 1.1))))
+
+(package
+ (name dkml-exe)
+ (synopsis "'dkml' (Diskuv OCaml) executable")
+ (description "'dkml init' creates a local Windows-friendly Opam switch configured with DKML Opam repositories and options")
+ (depends
+  (dkml-exe-lib         (= :version))))
+
+(package
+ (name opam-dkml)
+ (synopsis "Opam plugin for Diskuv OCaml (DKML). Deprecated; use 'dkml' executable instead")
+ (description "An opam plugin where 'opam dkml init' creates a local Windows-friendly Opam switch configured with DKML Opam repositories and options")
+ (depends
+  (dkml-exe-lib         (= :version))))

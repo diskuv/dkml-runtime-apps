@@ -13,12 +13,12 @@
        eval $(opam env --switch "$DiskuvOCamlHome/dkml" --set-switch)
    
    To test:
-       dune build src/opam-dkml/opam_dkml.exe
-       DKML_BUILD_TRACE=ON DKML_BUILD_TRACE_LEVEL=2 _build/default/src/opam-dkml/opam_dkml.exe
+       dune build src/opam-dkml/dkml_exe.exe
+       DKML_BUILD_TRACE=ON DKML_BUILD_TRACE_LEVEL=2 _build/default/src/opam-dkml/dkml_exe.exe
    
    To install and test:
-       opam install ./opam-dkml.opam
-       DKML_BUILD_TRACE=ON DKML_BUILD_TRACE_LEVEL=2 opam dkml
+       opam install ./dkml-runtimelib.opam ./dkml-exe-lib.opam ./dkml-exe.opam
+       DKML_BUILD_TRACE=ON DKML_BUILD_TRACE_LEVEL=2 dkml
 *)
 
 open Dkml_exe_lib
@@ -26,5 +26,5 @@ open Dkml_exe_lib
 let () =
   Cmdliner.Term.exit
   @@ Cmdliner.Term.eval_choice
-       (main_t, Cmdliner.Term.info "opam dkml")
+       (main_t, Cmdliner.Term.info "dkml")
        [ (version_t, version_info); (init_t, init_info) ]

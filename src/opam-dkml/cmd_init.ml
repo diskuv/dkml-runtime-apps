@@ -56,9 +56,12 @@ let run f_setup localdir_fp_opt buildtype yes non_system_compiler =
          dkml-runtime-common) will be what is present in <DKML_home>/repos! *)
       Lazy.force Dkml_runtimelib.get_dkmlversion >>= fun dkmlversion ->
       (* Extract all DKML scripts into scripts_dir_fp using installed dkmlversion. *)
-      Dkml_runtimescripts.extract_dkml_scripts ~dkmlversion scripts_dir_fp >>= fun () ->
+      Dkml_runtimescripts.extract_dkml_scripts ~dkmlversion scripts_dir_fp
+      >>= fun () ->
       (* Get local directory *)
-      Option.fold ~none:(OS.Dir.current ()) ~some:(fun v -> Ok v) localdir_fp_opt
+      Option.fold ~none:(OS.Dir.current ())
+        ~some:(fun v -> Ok v)
+        localdir_fp_opt
       >>= fun localdir_fp ->
       (* Find env *)
       Fpath.of_string "/" >>= fun slash ->
