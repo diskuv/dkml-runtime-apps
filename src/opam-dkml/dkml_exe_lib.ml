@@ -64,8 +64,8 @@ let version_t =
   let print () = print_endline Dkml_config.version in
   Term.(const print $ const ())
 
-let version_info =
-  Term.info ~doc:"Prints the version of the DKML plugin" "version"
+let version_info ~description =
+  Term.info ~doc:("Prints the version of " ^ description) "version"
 
 let init_t =
   Term.ret

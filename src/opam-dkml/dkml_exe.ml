@@ -27,4 +27,7 @@ let () =
   Cmdliner.Term.exit
   @@ Cmdliner.Term.eval_choice
        (main_t, Cmdliner.Term.info "dkml")
-       [ (version_t, version_info); (init_t, init_info) ]
+       [
+         (version_t, version_info ~description:"Diskuv OCaml (DKML)");
+         (init_t, init_info);
+       ]
