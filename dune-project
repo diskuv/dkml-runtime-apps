@@ -1,6 +1,6 @@
 (lang dune 2.9)
 (name dkml-apps)
-(version 1.2.0~prerel9)
+(version 1.2.0~prerel10)
 
 (generate_opam_files true)
 
