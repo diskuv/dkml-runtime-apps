@@ -18,7 +18,7 @@ let non_system_compiler_t =
 
 let buildtype_t =
   let doc =
-    Fmt.str "%s. Only used when --%s is given."
+    Fmt.str "[DEPRECATED]. %s. Only used when --%s is given."
       (if Sys.win32 then {|$(b,Debug) or $(b,Release)|}
       else
         {|$(b,Debug), $(b,Release), $(b,ReleaseCompatPerf), or $(b,ReleaseCompatFuzz)|})
@@ -36,7 +36,7 @@ let buildtype_t =
           ("ReleaseCompatFuzz", ReleaseCompatFuzz);
         ]
   in
-  Arg.(value & opt conv_buildtype Debug & info [ "b"; "build-type" ] ~doc ~docv)
+  Arg.(value & opt conv_buildtype Release & info [ "b"; "build-type" ] ~doc ~docv)
 
 let run f_setup localdir_fp_opt buildtype yes non_system_compiler =
   f_setup () >>= fun () ->
