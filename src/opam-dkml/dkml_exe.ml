@@ -1,8 +1,3 @@
-(* Cmdliner 1.0 -> 1.1 deprecated a lot of things. But until Cmdliner 1.1
-   is in common use in Opam packages we should provide backwards compatibility.
-   In fact, Diskuv OCaml is not even using Cmdliner 1.1. *)
-[@@@alert "-deprecated"]
-
 (*
    To setup on Unix/macOS:
      eval $(opam env --switch dkml --set-switch)
@@ -24,10 +19,11 @@
 open Dkml_exe_lib
 
 let () =
-  Cmdliner.Term.exit
-  @@ Cmdliner.Term.eval_choice
-       (main_t, Cmdliner.Term.info "dkml")
-       [
-         (version_t, version_info ~description:"Diskuv OCaml (DKML)");
-         (init_t, init_info);
-       ]
+  let open Cmdliner in
+  exit
+    (Cmd.eval
+       (Cmd.group ~default:main_t (Cmd.info "dkml")
+          [
+            Cmd.v (version_info ~description:"Diskuv OCaml (DKML)") version_t;
+            Cmd.v init_info init_t;
+          ]))

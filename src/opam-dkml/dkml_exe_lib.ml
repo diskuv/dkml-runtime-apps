@@ -1,14 +1,10 @@
-(* Cmdliner 1.0 -> 1.1 deprecated a lot of things. But until Cmdliner 1.1
-   is in common use in Opam packages we should provide backwards compatibility.
-   In fact, Diskuv OCaml is not even using Cmdliner 1.1. *)
-[@@@alert "-deprecated"]
-
-open Bos
 open Rresult
 module Arg = Cmdliner.Arg
+module Cmd = Cmdliner.Cmd
 module Term = Cmdliner.Term
 
 let setup () =
+  let open Bos in
   (* Setup logging *)
   Fmt_tty.setup_std_outputs ();
   Logs.set_reporter (Logs_fmt.reporter ());
@@ -65,7 +61,7 @@ let version_t =
   Term.(const print $ const ())
 
 let version_info ~description =
-  Term.info ~doc:("Prints the version of " ^ description) "version"
+  Cmd.info ~doc:("Prints the version of " ^ description) "version"
 
 let init_t =
   Term.ret
@@ -75,7 +71,7 @@ let init_t =
         $ Cmd_init.buildtype_t $ yes_t $ Cmd_init.non_system_compiler_t))
 
 let init_info =
-  Term.info
+  Cmd.info
     ~doc:
       "Creates or updates an `_opam` subdirectory from zero or more `*.opam` \
        files in the local directory"
