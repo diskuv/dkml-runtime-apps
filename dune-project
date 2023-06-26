@@ -30,9 +30,9 @@
   (fpath        (>= 0.7.0))
   (re           (>= 1.10.0))
   (rresult      (>= 0.7.0))
-  dkml-compiler-env
-  (dkml-runtime-common        (>= 1.2.1~))
-  (dkml-runtime-distribution  (>= 1.2.1~))
+  (dkml-compiler-env          (= :version))
+  (dkml-runtime-common        (= :version))
+  (dkml-runtime-distribution  (= :version))
   (crunch       (>= 3.3.1))))
 
 (package
@@ -41,7 +41,7 @@
  (depends
   (ocaml                (>= 4.12.1))
   (dkml-runtimelib      (= :version))
-  (dkml-runtime-common  (>= 1.2.1~))
+  (dkml-runtime-common  (= :version))
   (logs                 (>= 0.7.0))
   (fmt                  (>= 0.8.9))
   (sha                  (>= 1.15.2))

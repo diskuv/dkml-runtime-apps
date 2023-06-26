@@ -15,9 +15,9 @@ depends: [
   "fpath" {>= "0.7.0"}
   "re" {>= "1.10.0"}
   "rresult" {>= "0.7.0"}
-  "dkml-compiler-env"
-  "dkml-runtime-common" {>= "1.2.1~"}
-  "dkml-runtime-distribution" {>= "1.2.1~"}
+  "dkml-compiler-env" {= version}
+  "dkml-runtime-common" {= version}
+  "dkml-runtime-distribution" {= version}
   "crunch" {>= "3.3.1"}
   "odoc" {with-doc}
 ]

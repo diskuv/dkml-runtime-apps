@@ -1,6 +1,0 @@
-pin-depends: [
-  [
-    "dkml-compiler-env.~dev"
-    "git+https://github.com/diskuv/dkml-compiler.git"
-  ]
-]
