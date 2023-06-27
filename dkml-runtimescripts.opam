@@ -38,9 +38,3 @@ build: [
   ["dune" "install" "-p" name "--create-install-files" name]
 ]
 dev-repo: "git+https://github.com/diskuv/dkml-runtime-apps.git"
-pin-depends: [
-  [
-    "dkml-compiler-env.~dev"
-    "git+https://github.com/diskuv/dkml-compiler.git"
-  ]
-]
