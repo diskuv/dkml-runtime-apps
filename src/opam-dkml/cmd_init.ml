@@ -36,7 +36,8 @@ let buildtype_t =
           ("ReleaseCompatFuzz", ReleaseCompatFuzz);
         ]
   in
-  Arg.(value & opt conv_buildtype Release & info [ "b"; "build-type" ] ~doc ~docv)
+  Arg.(
+    value & opt conv_buildtype Release & info [ "b"; "build-type" ] ~doc ~docv)
 
 let run f_setup localdir_fp_opt buildtype yes non_system_compiler =
   f_setup () >>= fun () ->
@@ -63,13 +64,15 @@ let run f_setup localdir_fp_opt buildtype yes non_system_compiler =
         ~some:(fun v -> Ok v)
         localdir_fp_opt
       >>= fun localdir_fp ->
+      (* Find optional MSYS2 *)
+      Lazy.force Dkml_runtimelib.get_msys2_dir_opt >>= fun msys2_dir_opt ->
       (* Find env *)
       Fpath.of_string "/" >>= fun slash ->
-      (Lazy.force Dkml_runtimelib.get_msys2_dir_opt >>= function
-       | None -> Ok Fpath.(slash / "usr" / "bin" / "env")
-       | Some msys2_dir ->
-           Logs.debug (fun m -> m "MSYS2 directory: %a" Fpath.pp msys2_dir);
-           Ok Fpath.(msys2_dir / "usr" / "bin" / "env.exe"))
+      (match msys2_dir_opt with
+      | None -> Ok Fpath.(slash / "usr" / "bin" / "env")
+      | Some msys2_dir ->
+          Logs.debug (fun m -> m "MSYS2 directory: %a" Fpath.pp msys2_dir);
+          Ok Fpath.(msys2_dir / "usr" / "bin" / "env.exe"))
       >>= fun env_exe ->
       (* Find target ABI *)
       Rresult.R.error_to_msg ~pp_error:Fmt.string
@@ -123,6 +126,30 @@ let run f_setup localdir_fp_opt buildtype yes non_system_compiler =
           @ (if non_system_compiler then []
             else [ "-v"; Fpath.to_string ocaml_home_fp ])
           @ (if yes then [ "-y" ] else [])
+          @ (match msys2_dir_opt with
+            | None -> []
+            | Some msys2_dir ->
+                (*
+                   MSYS2 sets PKG_CONFIG_SYSTEM_{INCLUDE,LIBRARY}_PATH which causes
+                   native Windows pkgconf to not see MSYS2 packages.
+
+                   Confer:
+                   https://github.com/pkgconf/pkgconf#compatibility-with-pkg-config
+                   https://github.com/msys2/MSYS2-packages/blob/f953d15d0ede1dfb8656a8b3e27c2b694fa1e9a7/filesystem/profile#L54-L55
+
+                   Replicated (and need to change if these change):
+                   [dkml/packaging/version-bump/upsert-dkml-switch.in.sh]
+                   [dkml-component-ocamlcompiler/assets/staging-files/win32/setup-userprofile.ps1]
+                *)
+                [
+                  "-e";
+                  Fmt.str "PKG_CONFIG_PATH=%a" Fpath.pp
+                    Fpath.(msys2_dir / "clang64" / "lib" / "pkgconfig");
+                  "-e";
+                  "PKG_CONFIG_SYSTEM_INCLUDE_PATH=";
+                  "-e";
+                  "PKG_CONFIG_SYSTEM_LIBRARY_PATH=";
+                ])
           @
           match buildtype with
           | Debug -> [ "-b"; "Debug" ]
