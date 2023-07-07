@@ -41,44 +41,76 @@ let is_with_dkml_exe filename =
   in
   is_basename_of_filename_in_search_list ~search_list_lowercase filename
 
-let is_dune_exe path =
-  let search_list_lowercase = [ "dune"; "dune.exe" ] in
+(** [is_bytecode_exe path] is true if and only if the [path] has a basename
+    known to run or need bytecode (down, ocaml, ocamlfind, utop, utop-full)
+    and also is inside a ["bin/"] directory. *)
+let is_bytecode_exe path =
+  let search_list_lowercase =
+    List.map
+      (fun filename -> [ filename; filename ^ ".exe" ])
+      [ "down"; "ocaml"; "ocamlfind"; "utop"; "utop-full" ]
+    |> List.flatten
+  in
   let n = Fpath.filename path in
-  List.mem n search_list_lowercase
+  match List.mem n search_list_lowercase with
+  | false -> false
+  | true -> String.equal "bin" Fpath.(basename (parent path))
 
 let is_opam_exe filename =
   let search_list_lowercase = [ "opam"; "opam.exe" ] in
   is_basename_of_filename_in_search_list ~search_list_lowercase filename
 
-let set_dune_env () =
+let canonical_path_sep = if Sys.win32 then ";" else ":"
+
+let when_dir_exists_add_pathlike_env ~envvar dir =
   let ( let* ) = Rresult.R.( >>= ) in
-  let dkmlhome = OS.Env.opt_var "DiskuvOCamlHome" ~absent:"" in
-  match dkmlhome with
-  | "" -> Ok ()
-  | _ ->
-      let* dkmlhome_p = Fpath.of_string dkmlhome in
-      let* path = OS.Env.req_var "PATH" in
-      let existing_paths = String.cuts ~empty:false ~sep:";" path in
-      let inotify_win_dir = Fpath.(dkmlhome_p / "tools" / "inotify-win") in
-      let fswatch_dir = Fpath.(dkmlhome_p / "tools" / "fswatch") in
-      let when_exists_add_to_path dir old_path =
-        let* dir_exists = OS.Dir.exists dir in
-        if dir_exists then
-          let entry = Fpath.to_string dir in
-          if List.mem entry existing_paths then (
-            Logs.debug (fun l ->
-                l "Skipping adding pre-existent %a to PATH" Fpath.pp dir);
-            Ok old_path)
-          else (
-            Logs.debug (fun l -> l "Appending %a to PATH" Fpath.pp dir);
-            let new_path = old_path ^ ";" ^ entry in
-            let* () = OS.Env.set_var "PATH" (Some new_path) in
-            Ok new_path)
-        else Ok old_path
+  let old_path, existing_paths =
+    match OS.Env.var envvar with
+    | None -> ("", [])
+    | Some path -> (path, String.cuts ~empty:false ~sep:canonical_path_sep path)
+  in
+  let* dir_exists = OS.Dir.exists dir in
+  if dir_exists then
+    let entry = Fpath.to_string dir in
+    if List.mem entry existing_paths then (
+      Logs.debug (fun l ->
+          l "Skipping adding pre-existent %a to PATH" Fpath.pp dir);
+      Ok ())
+    else (
+      Logs.debug (fun l -> l "Appending %a to %s" Fpath.pp dir envvar);
+      let new_path =
+        if String.equal "" old_path then entry
+        else old_path ^ canonical_path_sep ^ entry
       in
-      let* path = when_exists_add_to_path inotify_win_dir path in
-      let* _path = when_exists_add_to_path fswatch_dir path in
-      Ok ()
+      OS.Env.set_var envvar (Some new_path))
+  else Ok ()
+
+let when_path_exists_set_env ~envvar path =
+  let ( let* ) = Rresult.R.( >>= ) in
+  let* path_exists = OS.Path.exists path in
+  if path_exists then (
+    let entry = Fpath.to_string path in
+    Logs.debug (fun l -> l "Setting %s to %a" envvar Fpath.pp path);
+    OS.Env.set_var envvar (Some entry))
+  else Ok ()
+
+let set_bytecode_env abs_cmd_p =
+  let ( let* ) = Rresult.R.( >>= ) in
+  (* Installation prefix *)
+  let prefix_p = Fpath.(parent (parent abs_cmd_p)) in
+  let stublibs = Fpath.(prefix_p / "lib" / "ocaml" / "stublibs") in
+  let findlib_conf = Fpath.(prefix_p / "lib" / "findlib.conf") in
+  let* () = when_path_exists_set_env ~envvar:"OCAMLFIND_CONF" findlib_conf in
+  let* () =
+    match Sys.win32 with
+    | true ->
+        (* Windows requires DLLs in PATH *)
+        when_dir_exists_add_pathlike_env ~envvar:"PATH" stublibs
+    | false ->
+        (* Unix (generally) requires .so in LD_LIBRARY_PATH *)
+        when_dir_exists_add_pathlike_env ~envvar:"LD_LIBRARY_PATH" stublibs
+  in
+  Ok ()
 
 (** Create a command line like [let cmdline_a = [".../usr/bin/env.exe"; Args.others]]
     or [let cmdline_b = ["XYZ-real.exe"; Args.others]]
@@ -111,10 +143,14 @@ let set_dune_env () =
     and the MSVC compiler available to it. You can do the same with
     ["opam.exe"] or any other executable.
 
-    Special case: If the current executable is ["dune"] and the environment
-    variable ["DiskuvOCamlHome"] is defined, then
-    ["$DiskuvOCamlHome/tools/inotify-win"] and
-    ["$DiskuvOCamlHome/tools/fswatch"] are appended to the PATH.
+    Special case: If the current executable is a bytecode executable (one of
+    ["ocaml"; "down"; "utop"; "utop-full"; "utop"]) and the current executable
+    is in a ["bin/"] folder, then:
+    
+    1. ["../lib/findlib.conf"] is set as the OCAMLFIND_CONF if the configuration
+    file exists.
+    2. ["../lib/ocaml/stublibs"] is added to the PATH on Windows (or
+    LD_LIBRARY_PATH on Unix) if the directory exists.
 *)
 let create_and_setenv_if_necessary () =
   let ( let* ) = Rresult.R.( >>= ) in
@@ -222,12 +258,12 @@ let create_and_setenv_if_necessary () =
         let opam = if is_opam_exe cmd then Some () else None in
         let* abs_cmd_p, real_exe = get_abs_cmd_and_real_exe ?opam cmd in
         let* () =
-          if is_dune_exe abs_cmd_p then (
+          if is_bytecode_exe abs_cmd_p then (
             Logs.debug (fun l ->
                 l
-                  "Detected [dune] invocation. Setting Dune environment to \
-                   allow 'dune build --watch'");
-            set_dune_env ())
+                  "Detected bytecode invocation. Setting environment to have \
+                   relocatable findlib configuration and stub libraries");
+            set_bytecode_env abs_cmd_p)
           else Ok ()
         in
         Ok ([ Fpath.to_string env_exe; Fpath.to_string real_exe ] @ args)
