@@ -99,9 +99,13 @@ let set_bytecode_env abs_cmd_p =
   (* Installation prefix *)
   let prefix_p = Fpath.(parent (parent abs_cmd_p)) in
   let bc_p = Fpath.(prefix_p / "share" / "bc") in
-  let ocaml_stublibs_p = Fpath.(prefix_p / "lib" / "ocaml" / "stublibs") in
+  let ocaml_lib_p = Fpath.(prefix_p / "lib" / "ocaml") in
+  let ocaml_stublibs_p = Fpath.(ocaml_lib_p / "stublibs") in
   let bc_stublibs_p = Fpath.(bc_p / "lib" / "stublibs") in
   let findlib_conf = Fpath.(prefix_p / "lib" / "findlib.conf") in
+  (* OCAMLLIB *)
+  let* () = when_path_exists_set_env ~envvar:"OCAMLLIB" ocaml_lib_p in
+  (* OCAMLFIND_CONF *)
   let* () = when_path_exists_set_env ~envvar:"OCAMLFIND_CONF" findlib_conf in
   let* () =
     match Sys.win32 with
@@ -153,7 +157,9 @@ let set_bytecode_env abs_cmd_p =
     
     1. ["../lib/findlib.conf"] is set as the OCAMLFIND_CONF if the configuration
     file exists.
-    2. ["../lib/ocaml/stublibs"] and ["../share/bc/lib/stublibs"] are added to
+    2. ["../lib/ocaml"] is set as the OCAMLLIB (used by <ocaml>/utils/config.ml
+       [standard_library]) if the directory exists.
+    3. ["../lib/ocaml/stublibs"] and ["../share/bc/lib/stublibs"] are added to
     the PATH on Windows (or LD_LIBRARY_PATH on Unix) if the directories exist.
 *)
 let create_and_setenv_if_necessary () =
