@@ -102,7 +102,7 @@ let set_bytecode_env abs_cmd_p =
   let ocaml_lib_p = Fpath.(prefix_p / "lib" / "ocaml") in
   let ocaml_stublibs_p = Fpath.(ocaml_lib_p / "stublibs") in
   let bc_stublibs_p = Fpath.(bc_p / "lib" / "stublibs") in
-  let findlib_conf = Fpath.(prefix_p / "lib" / "findlib.conf") in
+  let findlib_conf = Fpath.(prefix_p / "usr" / "lib" / "findlib.conf") in
   (* OCAMLLIB *)
   let* () = when_path_exists_set_env ~envvar:"OCAMLLIB" ocaml_lib_p in
   (* OCAMLFIND_CONF *)
@@ -155,7 +155,7 @@ let set_bytecode_env abs_cmd_p =
     ["ocaml"; "down"; "utop"; "utop-full"; "utop"]) and the current executable
     is in a ["bin/"] folder, then:
     
-    1. ["../lib/findlib.conf"] is set as the OCAMLFIND_CONF if the configuration
+    1. ["../usr/lib/findlib.conf"] is set as the OCAMLFIND_CONF if the configuration
     file exists.
     2. ["../lib/ocaml"] is set as the OCAMLLIB (used by <ocaml>/utils/config.ml
        [standard_library]) if the directory exists.
