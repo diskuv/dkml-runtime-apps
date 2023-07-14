@@ -98,7 +98,7 @@ let set_bytecode_env abs_cmd_p =
   let ( let* ) = Rresult.R.( >>= ) in
   (* Installation prefix *)
   let prefix_p = Fpath.(parent (parent abs_cmd_p)) in
-  let bc_p = Fpath.(prefix_p / "share" / "bc") in
+  let bc_p = Fpath.(prefix_p / "desktop" / "bc") in
   let ocaml_lib_p = Fpath.(prefix_p / "lib" / "ocaml") in
   let ocaml_stublibs_p = Fpath.(ocaml_lib_p / "stublibs") in
   let bc_stublibs_p = Fpath.(bc_p / "lib" / "stublibs") in
