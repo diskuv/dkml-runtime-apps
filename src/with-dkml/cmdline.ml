@@ -129,12 +129,12 @@ let set_bytecode_env abs_cmd_p =
       (* Installation prefix *)
       let prefix_p = Fpath.(parent (parent abs_cmd_p)) in
       let bc_p = Fpath.(prefix_p / "desktop" / "bc") in
-      let ocaml_lib_p = Fpath.(prefix_p / "lib" / "ocaml") in
-      let ocaml_stublibs_p = Fpath.(ocaml_lib_p / "stublibs") in
+      let bc_ocaml_lib_p = Fpath.(bc_p / "lib" / "ocaml") in
+      let bc_ocaml_stublibs_p = Fpath.(bc_ocaml_lib_p / "stublibs") in
       let bc_stublibs_p = Fpath.(bc_p / "lib" / "stublibs") in
       let findlib_conf = Fpath.(prefix_p / "usr" / "lib" / "findlib.conf") in
       (* OCAMLLIB *)
-      let* () = when_path_exists_set_env ~envvar:"OCAMLLIB" ocaml_lib_p in
+      let* () = when_path_exists_set_env ~envvar:"OCAMLLIB" bc_ocaml_lib_p in
       (* OCAMLFIND_CONF *)
       let* () =
         when_path_exists_set_env ~envvar:"OCAMLFIND_CONF" findlib_conf
@@ -144,14 +144,14 @@ let set_bytecode_env abs_cmd_p =
         | true ->
             (* Windows requires DLLs in PATH *)
             let* () =
-              when_dir_exists_add_pathlike_env ~envvar:"PATH" ocaml_stublibs_p
+              when_dir_exists_add_pathlike_env ~envvar:"PATH" bc_ocaml_stublibs_p
             in
             when_dir_exists_add_pathlike_env ~envvar:"PATH" bc_stublibs_p
         | false ->
             (* Unix (generally) requires .so in LD_LIBRARY_PATH *)
             let* () =
               when_dir_exists_add_pathlike_env ~envvar:"LD_LIBRARY_PATH"
-                ocaml_stublibs_p
+              bc_ocaml_stublibs_p
             in
             when_dir_exists_add_pathlike_env ~envvar:"LD_LIBRARY_PATH"
               bc_stublibs_p
