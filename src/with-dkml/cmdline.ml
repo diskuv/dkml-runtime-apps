@@ -42,13 +42,13 @@ let is_with_dkml_exe filename =
   is_basename_of_filename_in_search_list ~search_list_lowercase filename
 
 (** [is_bytecode_exe path] is true if and only if the [path] has a basename
-    known to run or need bytecode (down, ocaml, ocamlfind, utop, utop-full)
+    known to run or need bytecode (down, dune, ocaml, ocamlfind, utop, utop-full)
     and also is inside a ["bin/"] directory. *)
 let is_bytecode_exe path =
   let search_list_lowercase =
     List.map
       (fun filename -> [ filename; filename ^ ".exe" ])
-      [ "down"; "ocaml"; "ocamlfind"; "utop"; "utop-full" ]
+      [ "down"; "dune"; "ocaml"; "ocamlfind"; "utop"; "utop-full" ]
     |> List.flatten
   in
   let n = Fpath.filename path in
@@ -96,29 +96,51 @@ let when_path_exists_set_env ~envvar path =
 
 let set_bytecode_env abs_cmd_p =
   let ( let* ) = Rresult.R.( >>= ) in
-  (* Installation prefix *)
-  let prefix_p = Fpath.(parent (parent abs_cmd_p)) in
-  let bc_p = Fpath.(prefix_p / "desktop" / "bc") in
-  let ocaml_lib_p = Fpath.(prefix_p / "lib" / "ocaml") in
-  let ocaml_stublibs_p = Fpath.(ocaml_lib_p / "stublibs") in
-  let bc_stublibs_p = Fpath.(bc_p / "lib" / "stublibs") in
-  let findlib_conf = Fpath.(prefix_p / "usr" / "lib" / "findlib.conf") in
-  (* OCAMLLIB *)
-  let* () = when_path_exists_set_env ~envvar:"OCAMLLIB" ocaml_lib_p in
-  (* OCAMLFIND_CONF *)
-  let* () = when_path_exists_set_env ~envvar:"OCAMLFIND_CONF" findlib_conf in
-  let* () =
-    match Sys.win32 with
-    | true ->
-        (* Windows requires DLLs in PATH *)
-        let* () = when_dir_exists_add_pathlike_env ~envvar:"PATH" ocaml_stublibs_p in
-        when_dir_exists_add_pathlike_env ~envvar:"PATH" bc_stublibs_p
-    | false ->
-        (* Unix (generally) requires .so in LD_LIBRARY_PATH *)
-        let* () = when_dir_exists_add_pathlike_env ~envvar:"LD_LIBRARY_PATH" ocaml_stublibs_p in
-        when_dir_exists_add_pathlike_env ~envvar:"LD_LIBRARY_PATH" bc_stublibs_p
-  in
-  Ok ()
+  (* In Opam switch or in global environment?
+
+      Do not use the global bytecode environment if inside an Opam switch.
+      Really only applies to [dune] which has a dune+shim package.
+  *)
+  match OS.Env.opt_var ~absent:"" "OPAM_SWITCH_PREFIX" with
+  | "" ->
+      (* In Opam switch.
+
+         TODO: For [utop] especially it would be good to set the bytecode
+         environment to the Opam switch.
+      *)
+      Ok ()
+  | _ ->
+      (* Installation prefix *)
+      let prefix_p = Fpath.(parent (parent abs_cmd_p)) in
+      let bc_p = Fpath.(prefix_p / "desktop" / "bc") in
+      let ocaml_lib_p = Fpath.(prefix_p / "lib" / "ocaml") in
+      let ocaml_stublibs_p = Fpath.(ocaml_lib_p / "stublibs") in
+      let bc_stublibs_p = Fpath.(bc_p / "lib" / "stublibs") in
+      let findlib_conf = Fpath.(prefix_p / "usr" / "lib" / "findlib.conf") in
+      (* OCAMLLIB *)
+      let* () = when_path_exists_set_env ~envvar:"OCAMLLIB" ocaml_lib_p in
+      (* OCAMLFIND_CONF *)
+      let* () =
+        when_path_exists_set_env ~envvar:"OCAMLFIND_CONF" findlib_conf
+      in
+      let* () =
+        match Sys.win32 with
+        | true ->
+            (* Windows requires DLLs in PATH *)
+            let* () =
+              when_dir_exists_add_pathlike_env ~envvar:"PATH" ocaml_stublibs_p
+            in
+            when_dir_exists_add_pathlike_env ~envvar:"PATH" bc_stublibs_p
+        | false ->
+            (* Unix (generally) requires .so in LD_LIBRARY_PATH *)
+            let* () =
+              when_dir_exists_add_pathlike_env ~envvar:"LD_LIBRARY_PATH"
+                ocaml_stublibs_p
+            in
+            when_dir_exists_add_pathlike_env ~envvar:"LD_LIBRARY_PATH"
+              bc_stublibs_p
+      in
+      Ok ()
 
 (** Create a command line like [let cmdline_a = [".../usr/bin/env.exe"; Args.others]]
     or [let cmdline_b = ["XYZ-real.exe"; Args.others]]
