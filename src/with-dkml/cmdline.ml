@@ -60,6 +60,22 @@ let is_opam_exe filename =
   let search_list_lowercase = [ "opam"; "opam.exe" ] in
   is_basename_of_filename_in_search_list ~search_list_lowercase filename
 
+let is_blurb_exe filename =
+  (* Any command line interpreters *)
+  let search_list_lowercase =
+    [
+      "down";
+      "down.exe";
+      "ocaml";
+      "ocaml.exe";
+      "utop";
+      "utop.exe";
+      "utop-full";
+      "utop-full.exe";
+    ]
+  in
+  is_basename_of_filename_in_search_list ~search_list_lowercase filename
+
 let canonical_path_sep = if Sys.win32 then ";" else ":"
 
 let when_dir_exists_add_pathlike_env ~envvar dir =
@@ -141,6 +157,16 @@ let set_bytecode_env abs_cmd_p =
               bc_stublibs_p
       in
       Ok ()
+
+let blurb () =
+  let ( let* ) = Rresult.R.( >>= ) in
+  let* version = Lazy.force Dkml_runtimelib.get_dkmlversion in
+  Format.eprintf
+    {|DkML %s: Open Source, emphasis on pure OCaml. https://diskuv.com/dkmlbook/
+DkSDK: Commercial, C/C++/Java/Swift alongside OCaml:  https://diskuv.com/cmake/help/latest/
+@.|}
+    version;
+  Ok ()
 
 (** Create a command line like [let cmdline_a = [".../usr/bin/env.exe"; Args.others]]
     or [let cmdline_b = ["XYZ-real.exe"; Args.others]]
@@ -288,6 +314,7 @@ let create_and_setenv_if_necessary () =
     (* CMDLINE_C FORM *)
     | cmd :: args ->
         let opam = if is_opam_exe cmd then Some () else None in
+        let* () = if is_blurb_exe cmd && args = [] then blurb () else Ok () in
         let* abs_cmd_p, real_exe = get_abs_cmd_and_real_exe ?opam cmd in
         let* () =
           if is_bytecode_exe abs_cmd_p then (
