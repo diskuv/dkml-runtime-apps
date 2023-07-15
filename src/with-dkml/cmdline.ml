@@ -42,13 +42,13 @@ let is_with_dkml_exe filename =
   is_basename_of_filename_in_search_list ~search_list_lowercase filename
 
 (** [is_bytecode_exe path] is true if and only if the [path] has a basename
-    known to run or need bytecode (down, dune, ocaml, ocamlfind, utop, utop-full)
+    known to run or need bytecode (down, dune, ocaml, ocamlc, ocamlfind, utop, utop-full)
     and also is inside a ["bin/"] directory. *)
 let is_bytecode_exe path =
   let search_list_lowercase =
     List.map
       (fun filename -> [ filename; filename ^ ".exe" ])
-      [ "down"; "dune"; "ocaml"; "ocamlfind"; "utop"; "utop-full" ]
+      [ "down"; "dune"; "ocaml"; "ocamlc"; "ocamlfind"; "utop"; "utop-full" ]
     |> List.flatten
   in
   let n = Fpath.filename path in
