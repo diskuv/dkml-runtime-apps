@@ -78,7 +78,7 @@ let is_blurb_exe filename =
 
 let canonical_path_sep = if Sys.win32 then ";" else ":"
 
-let when_dir_exists_add_pathlike_env ~envvar dir =
+let when_dir_exists_prepend_pathlike_env ~envvar dir =
   let ( let* ) = Rresult.R.( >>= ) in
   let old_path, existing_paths =
     match OS.Env.var envvar with
@@ -93,10 +93,10 @@ let when_dir_exists_add_pathlike_env ~envvar dir =
           l "Skipping adding pre-existent %a to PATH" Fpath.pp dir);
       Ok ())
     else (
-      Logs.debug (fun l -> l "Appending %a to %s" Fpath.pp dir envvar);
+      Logs.debug (fun l -> l "Prepending %a to %s" Fpath.pp dir envvar);
       let new_path =
         if String.equal "" old_path then entry
-        else old_path ^ canonical_path_sep ^ entry
+        else entry ^ canonical_path_sep ^ old_path
       in
       OS.Env.set_var envvar (Some new_path))
   else Ok ()
@@ -123,6 +123,7 @@ let set_bytecode_env abs_cmd_p =
       (* Installation prefix *)
       let prefix_p = Fpath.(parent (parent abs_cmd_p)) in
       let bc_p = Fpath.(prefix_p / "desktop" / "bc") in
+      let bc_bin_p = Fpath.(bc_p / "bin") in
       let bc_ocaml_lib_p = Fpath.(bc_p / "lib" / "ocaml") in
       let bc_ocaml_stublibs_p = Fpath.(bc_ocaml_lib_p / "stublibs") in
       let bc_stublibs_p = Fpath.(bc_p / "lib" / "stublibs") in
@@ -138,19 +139,22 @@ let set_bytecode_env abs_cmd_p =
         | true ->
             (* Windows requires DLLs in PATH *)
             let* () =
-              when_dir_exists_add_pathlike_env ~envvar:"PATH"
+              when_dir_exists_prepend_pathlike_env ~envvar:"PATH"
                 bc_ocaml_stublibs_p
             in
-            when_dir_exists_add_pathlike_env ~envvar:"PATH" bc_stublibs_p
+            when_dir_exists_prepend_pathlike_env ~envvar:"PATH" bc_stublibs_p
         | false ->
             (* Unix (generally) requires .so in LD_LIBRARY_PATH *)
             let* () =
-              when_dir_exists_add_pathlike_env ~envvar:"LD_LIBRARY_PATH"
+              when_dir_exists_prepend_pathlike_env ~envvar:"LD_LIBRARY_PATH"
                 bc_ocaml_stublibs_p
             in
-            when_dir_exists_add_pathlike_env ~envvar:"LD_LIBRARY_PATH"
+            when_dir_exists_prepend_pathlike_env ~envvar:"LD_LIBRARY_PATH"
               bc_stublibs_p
       in
+      (* Dune requires ocamlc in the PATH. It should already be present
+         but just in case put the bytecode executables in the PATH *)
+      let* () = when_dir_exists_prepend_pathlike_env ~envvar:"PATH" bc_bin_p in
       Ok ()
   | _ ->
       (* In an Opam switch
