@@ -119,13 +119,7 @@ let set_bytecode_env abs_cmd_p =
   *)
   match OS.Env.opt_var ~absent:"" "OPAM_SWITCH_PREFIX" with
   | "" ->
-      (* In Opam switch.
-
-         TODO: For [utop] especially it would be good to set the bytecode
-         environment to the Opam switch.
-      *)
-      Ok ()
-  | _ ->
+      (* Not in an Opam switch. *)
       (* Installation prefix *)
       let prefix_p = Fpath.(parent (parent abs_cmd_p)) in
       let bc_p = Fpath.(prefix_p / "desktop" / "bc") in
@@ -144,18 +138,26 @@ let set_bytecode_env abs_cmd_p =
         | true ->
             (* Windows requires DLLs in PATH *)
             let* () =
-              when_dir_exists_add_pathlike_env ~envvar:"PATH" bc_ocaml_stublibs_p
+              when_dir_exists_add_pathlike_env ~envvar:"PATH"
+                bc_ocaml_stublibs_p
             in
             when_dir_exists_add_pathlike_env ~envvar:"PATH" bc_stublibs_p
         | false ->
             (* Unix (generally) requires .so in LD_LIBRARY_PATH *)
             let* () =
               when_dir_exists_add_pathlike_env ~envvar:"LD_LIBRARY_PATH"
-              bc_ocaml_stublibs_p
+                bc_ocaml_stublibs_p
             in
             when_dir_exists_add_pathlike_env ~envvar:"LD_LIBRARY_PATH"
               bc_stublibs_p
       in
+      Ok ()
+  | _ ->
+      (* In an Opam switch
+
+         TODO: For [utop] especially it would be good to set the bytecode
+         environment to the Opam switch and long as the opam switch does
+         not have its own stdlib from an ocaml compiler. *)
       Ok ()
 
 let blurb () =
