@@ -164,8 +164,8 @@ let blurb () =
   let ( let* ) = Rresult.R.( >>= ) in
   let* version = Lazy.force Dkml_runtimelib.get_dkmlversion in
   Format.eprintf
-    {|DkML %s: Open Source, emphasis on pure OCaml. https://diskuv.com/dkmlbook/
-DkSDK: Commercial, C/C++/Java/Swift alongside OCaml:  https://diskuv.com/cmake/help/latest/
+    {|DkML %s: Open source. Emphasis on pure OCaml. https://diskuv.com/dkmlbook/
+DkSDK: 30 day free. C/C++/Java/Swift with OCaml. https://diskuv.com/cmake/help/latest/
 @.|}
     version;
   Ok ()
