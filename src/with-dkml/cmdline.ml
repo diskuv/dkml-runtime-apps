@@ -42,19 +42,35 @@ let is_with_dkml_exe filename =
   is_basename_of_filename_in_search_list ~search_list_lowercase filename
 
 (** [is_bytecode_exe path] is true if and only if the [path] has a basename
-    known to run or need bytecode (down, dune, ocaml, ocamlc, ocamlfind, utop, utop-full)
-    and also is inside a ["bin/"] directory. *)
+    known to run or need bytecode (down, dune, ocaml, ocamlc, ocamlfind, utop,
+    utop-full) and also is inside a ["bin/"] directory.
+    
+    [dune] and [ocamlfind] are special because they depend on the value of
+    DiskuvOCamlMode=native|byte. It can either produce native code (which means
+    it needs an end-user compiled ocamlopt.exe, or a not-yet-completed
+    relocatable ocamlopt compiler) or it can produce byte code (which means
+    it needs a stdlib and third party libraries that share the same ocamlobjinfo
+    checksums ... no "Inconsistent assumptions over interface"). Said another
+    way, the native code (end-user compiled binaries and stdlib) are
+    incompatible with the pre-built bytecode (stdlib and 3rd party libraries).
+    *)
 let is_bytecode_exe path =
+  let ( let* ) = Rresult.R.( >>= ) in
+  let* mode = Lazy.force Dkml_runtimelib.get_dkmlmode in
+  let execs = [ "down"; "ocaml"; "ocamlc"; "utop"; "utop-full" ] in
+  let execs =
+    match mode with
+    | Nativecode -> execs
+    | Bytecode -> "ocamlfind" :: "dune" :: execs
+  in
   let search_list_lowercase =
-    List.map
-      (fun filename -> [ filename; filename ^ ".exe" ])
-      [ "down"; "dune"; "ocaml"; "ocamlc"; "ocamlfind"; "utop"; "utop-full" ]
+    List.map (fun filename -> [ filename; filename ^ ".exe" ]) execs
     |> List.flatten
   in
   let n = Fpath.filename path in
   match List.mem n search_list_lowercase with
-  | false -> false
-  | true -> String.equal "bin" Fpath.(basename (parent path))
+  | false -> Ok false
+  | true -> Ok (String.equal "bin" Fpath.(basename (parent path)))
 
 let is_opam_exe filename =
   let search_list_lowercase = [ "opam"; "opam.exe" ] in
@@ -110,7 +126,7 @@ let when_path_exists_set_env ~envvar path =
     OS.Env.set_var envvar (Some entry))
   else Ok ()
 
-let set_bytecode_env abs_cmd_p =
+let set_precompiled_env abs_cmd_p =
   let ( let* ) = Rresult.R.( >>= ) in
   (* In Opam switch or in global environment?
 
@@ -127,7 +143,9 @@ let set_bytecode_env abs_cmd_p =
       let bc_ocaml_lib_p = Fpath.(bc_p / "lib" / "ocaml") in
       let bc_ocaml_stublibs_p = Fpath.(bc_ocaml_lib_p / "stublibs") in
       let bc_stublibs_p = Fpath.(bc_p / "lib" / "stublibs") in
-      let findlib_conf = Fpath.(prefix_p / "usr" / "lib" / "findlib.conf") in
+      let findlib_conf =
+        Fpath.(prefix_p / "usr" / "lib" / "findlib-precompiled.conf")
+      in
       (* OCAMLLIB *)
       let* () = when_path_exists_set_env ~envvar:"OCAMLLIB" bc_ocaml_lib_p in
       (* OCAMLFIND_CONF *)
@@ -163,6 +181,20 @@ let set_bytecode_env abs_cmd_p =
          environment to the Opam switch and long as the opam switch does
          not have its own stdlib from an ocaml compiler. *)
       Ok ()
+
+let set_enduser_env abs_cmd_p =
+  match OS.Env.opt_var ~absent:"" "OPAM_SWITCH_PREFIX" with
+  | "" ->
+      (* Not in an Opam switch. *)
+      (* Installation prefix *)
+      let prefix_p = Fpath.(parent (parent abs_cmd_p)) in
+      let findlib_conf =
+        Fpath.(prefix_p / "usr" / "lib" / "findlib-enduser.conf")
+      in
+      (* OCAMLFIND_CONF. Only necessary because no ocamlfind package (or
+         any other package) is present after the OCaml compiler is installed. *)
+      when_path_exists_set_env ~envvar:"OCAMLFIND_CONF" findlib_conf
+  | _ -> Ok ()
 
 let blurb () =
   let ( let* ) = Rresult.R.( >>= ) in
@@ -322,14 +354,20 @@ let create_and_setenv_if_necessary () =
         let opam = if is_opam_exe cmd then Some () else None in
         let* () = if is_blurb_exe cmd && args = [] then blurb () else Ok () in
         let* abs_cmd_p, real_exe = get_abs_cmd_and_real_exe ?opam cmd in
+        let* bytecode_exe = is_bytecode_exe abs_cmd_p in
         let* () =
-          if is_bytecode_exe abs_cmd_p then (
+          if bytecode_exe then (
             Logs.debug (fun l ->
                 l
-                  "Detected bytecode invocation. Setting environment to have \
-                   relocatable findlib configuration and stub libraries");
-            set_bytecode_env abs_cmd_p)
-          else Ok ()
+                  "Detected precompiled invocation. Setting environment to \
+                   have relocatable findlib configuration and stub libraries");
+            set_precompiled_env abs_cmd_p)
+          else (
+            Logs.debug (fun l ->
+                l
+                  "Detected enduser invocation. Setting environment to have \
+                   install-time findlib configuration");
+            set_enduser_env abs_cmd_p)
         in
         Ok ([ Fpath.to_string env_exe; Fpath.to_string real_exe ] @ args)
     | _ ->

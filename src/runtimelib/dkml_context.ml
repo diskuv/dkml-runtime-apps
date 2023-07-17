@@ -14,21 +14,21 @@ let association_list_of_sexp =
 let get_dkmlparenthomedir =
   lazy
     (let open OS.Env in
-    match req_var "LOCALAPPDATA" with
-    | Ok localappdata ->
-        Fpath.of_string localappdata >>| fun fp ->
-        Fpath.(fp / "Programs" / "DiskuvOCaml")
-    | Error _ -> (
-        match req_var "XDG_DATA_HOME" with
-        | Ok xdg_data_home ->
-            Fpath.of_string xdg_data_home >>| fun fp ->
-            Fpath.(fp / "diskuv-ocaml")
-        | Error _ -> (
-            match req_var "HOME" with
-            | Ok home ->
-                Fpath.of_string home >>| fun fp ->
-                Fpath.(fp / ".local" / "share" / "diskuv-ocaml")
-            | Error _ as err -> err)))
+     match req_var "LOCALAPPDATA" with
+     | Ok localappdata ->
+         Fpath.of_string localappdata >>| fun fp ->
+         Fpath.(fp / "Programs" / "DiskuvOCaml")
+     | Error _ -> (
+         match req_var "XDG_DATA_HOME" with
+         | Ok xdg_data_home ->
+             Fpath.of_string xdg_data_home >>| fun fp ->
+             Fpath.(fp / "diskuv-ocaml")
+         | Error _ -> (
+             match req_var "HOME" with
+             | Ok home ->
+                 Fpath.of_string home >>| fun fp ->
+                 Fpath.(fp / ".local" / "share" / "diskuv-ocaml")
+             | Error _ as err -> err)))
 
 (** [get_dkmlenv_opt] creates an association list in the format of
     dkmlvars-v2.sexp from the environment if DiskuvOCamlVarsVersion and
@@ -102,12 +102,12 @@ let get_dkmlvars_opt =
       | Some env -> Ok (Some (association_list_of_sexp_lists env))
       | None ->
           Lazy.force get_dkmlparenthomedir >>= fun fp ->
-      OS.File.exists Fpath.(fp / "dkmlvars-v2.sexp") >>| fun exists ->
-      if exists then
-        Some
-          (Sexp.load_sexp_conv_exn
-             Fpath.(fp / "dkmlvars-v2.sexp" |> to_string)
-             association_list_of_sexp_lists)
+          OS.File.exists Fpath.(fp / "dkmlvars-v2.sexp") >>| fun exists ->
+          if exists then
+            Some
+              (Sexp.load_sexp_conv_exn
+                 Fpath.(fp / "dkmlvars-v2.sexp" |> to_string)
+                 association_list_of_sexp_lists)
           else None)
 
 (** [get_dkmlvars] gets an association list of dkmlvars-v2.sexp.
@@ -124,8 +124,8 @@ let get_dkmlvars =
       | Some env -> Ok (association_list_of_sexp_lists env)
       | None ->
           Lazy.force get_dkmlparenthomedir >>| fun fp ->
-      Sexp.load_sexp_conv_exn
-        Fpath.(fp / "dkmlvars-v2.sexp" |> to_string)
+          Sexp.load_sexp_conv_exn
+            Fpath.(fp / "dkmlvars-v2.sexp" |> to_string)
             association_list_of_sexp_lists)
 
 (* Get DKML version *)
@@ -138,6 +138,24 @@ let get_dkmlversion =
           R.error_msg
             "More or less than one DiskuvOCamlVersion in dkmlvars-v2.sexp"
       | None -> R.error_msg "No DiskuvOCamlVersion in dkmlvars-v2.sexp" )
+
+type dkmlmode = Nativecode | Bytecode
+
+(* Get DKML mode. Defaults to nativecode *)
+let get_dkmlmode =
+  lazy
+    ( Lazy.force get_dkmlvars >>= fun assocl ->
+      match List.assoc_opt "DiskuvOCamlMode" assocl with
+      | Some [ "native" ] -> R.ok Nativecode
+      | Some [ "byte" ] -> R.ok Bytecode
+      | Some [ v ] ->
+          R.error_msg
+            ("Only native and byte are allowed as the DiskuvOCamlMode in \
+              dkmlvars-v2.sexp, not " ^ v)
+      | Some _ ->
+          R.error_msg
+            "More or less than one DiskuvOCamlMode in dkmlvars-v2.sexp"
+      | None -> R.ok Nativecode )
 
 (* Get MSYS2 directory *)
 let get_msys2_dir_opt =

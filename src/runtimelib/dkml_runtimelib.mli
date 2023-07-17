@@ -14,4 +14,8 @@ val get_dkmlhome_dir_opt : (Fpath.t option, Rresult.R.msg) result lazy_t
 
 val get_dkmlversion : (string, Rresult.R.msg) result lazy_t
 
+type dkmlmode = Nativecode | Bytecode
+
+val get_dkmlmode : (dkmlmode, Rresult.R.msg) result lazy_t
+
 val association_list_of_sexp : Sexplib0__.Sexp.t -> (string * string) list
