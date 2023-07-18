@@ -35,5 +35,4 @@
   logs.fmt
   rresult
   sexplib
-  sexplib0
   sha))

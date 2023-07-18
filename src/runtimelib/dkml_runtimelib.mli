@@ -18,4 +18,4 @@ type dkmlmode = Nativecode | Bytecode
 
 val get_dkmlmode : (dkmlmode, Rresult.R.msg) result lazy_t
 
-val association_list_of_sexp : Sexplib0__.Sexp.t -> (string * string) list
+val association_list_of_sexp : Sexplib.Sexp.t -> (string * string) list
