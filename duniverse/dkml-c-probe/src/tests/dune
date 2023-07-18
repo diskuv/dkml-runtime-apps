@@ -1,3 +1,0 @@
-(tests
- (names test_c_conf)
- (libraries dkml-c-probe ounit2))

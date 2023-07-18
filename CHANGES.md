@@ -1,5 +1,10 @@
 # Changes
 
+## 2.0.0
+
+- Remove `duniverse/` and opam monorepo Makefile targets since dune+shim
+  no longer needs a duniverse build with dune.3.6.2+shim and later
+
 ## 1.2.1
 
 - Set OCAMLFIND_CONF and PATH (or LD_LIBRARY_PATH on Unix) for

@@ -104,28 +104,3 @@ with-dkml: $(WITH_DKML_EXE)
 $(WITH_DKML_EXE): $(DUNE_ARTIFACTS) $(WITH_DKML_PREREQS) $(WITH_DKML_SRC) $(DKML_RUNTIMELIB_ARTIFACTS)
 	export OPAMYES=1 OPAMSWITCH='$(OPAMSWITCH)' && \
 	opam exec -- dune build --display=short -p with-dkml,dkml-runtimelib
-
-# with-dkml (duniverse opam build)
-
-MONOREPO_ARTIFACTS = _opam/bin/opam-monorepo$(EXEEXT)
-monorepo: $(MONOREPO_ARTIFACTS)
-.PHONY: monorepo
-$(MONOREPO_ARTIFACTS): $(SWITCH_ARTIFACTS) $(MSYS2_CLANG64_PREREQS)
-	export OPAMYES=1 OPAMSWITCH='$(OPAMSWITCH)' && \
-	opam install opam-monorepo
-	touch $@
-
-with-dkml.opam.locked: $(MONOREPO_ARTIFACTS) $(DUNE_ARTIFACTS) $(PIN_ARTIFACTS) dune-project Makefile with-dkml.opam dkml-runtimelib.opam
-	export OPAMYES=1 OPAMSWITCH='$(OPAMSWITCH)' && \
-	opam exec -- dune build --display=short with-dkml.opam && \
-	opam monorepo lock --lockfile=$@ --ocaml-version=$(VERSION_OCAML) dkml-runtimelib with-dkml
-
-DUNIVERSE_ARTIFACTS = duniverse/dune
-duniverse: $(DUNIVERSE_ARTIFACTS)
-.PHONY: duniverse
-$(DUNIVERSE_ARTIFACTS): with-dkml.opam.locked $(MONOREPO_ARTIFACTS)
-	export OPAMYES=1 OPAMSWITCH='$(OPAMSWITCH)' && \
-	opam monorepo pull --lockfile=$< && \
-	echo "Removing dune_/test to avoid long paths on Windows like: duniverse/dune_/test/blackbox-tests/test-cases/mwe-dune-duplicate-dialect.t/duniverse/dune-configurator.2.7.1/test/dialects.t/bad1" && \
-	if git ls-files --error-unmatch duniverse/dune_/test/dune 2>/dev/null; then git rm -rf duniverse/dune_/test; else rm -rf duniverse/dune_/test; fi && \
-	touch $@
