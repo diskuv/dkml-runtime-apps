@@ -29,11 +29,11 @@ endif
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 #	[important packages]
-#		ocaml.4.12.1: So works with Diskuv OCaml 1.0.0 on Windows
+#		ocaml.4.14.0: So works with Diskuv OCaml 2.0.0 on Windows
 #	[packages that must be pinned as well to propagate into Opam Monorepo .locked files]
-#		dune.2.9.3: So works with Diskuv OCaml 1.0.0 on Windows
-VERSION_OCAML = 4.12.1
-VERSION_DUNE = 2.9.3
+#		dune.3.8.3: So works with Diskuv OCaml 2.0.0 on Windows
+VERSION_OCAML = 4.14.0
+VERSION_DUNE = 3.8.3
 
 SWITCH_ARTIFACTS = _opam/.opam-switch/switch-config
 switch: $(SWITCH_ARTIFACTS)
