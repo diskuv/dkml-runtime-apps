@@ -356,18 +356,24 @@ let create_and_setenv_if_necessary () =
         let* abs_cmd_p, real_exe = get_abs_cmd_and_real_exe ?opam cmd in
         let* bytecode_exe = is_bytecode_exe abs_cmd_p in
         let* () =
-          if bytecode_exe then (
-            Logs.debug (fun l ->
-                l
-                  "Detected precompiled invocation. Setting environment to \
-                   have relocatable findlib configuration and stub libraries");
-            set_precompiled_env abs_cmd_p)
-          else (
-            Logs.debug (fun l ->
-                l
-                  "Detected enduser invocation. Setting environment to have \
-                   install-time findlib configuration");
-            set_enduser_env abs_cmd_p)
+          match (opam, bytecode_exe) with
+          | Some (), _ ->
+              (* opam should never set OCAMLFIND_CONF, etc. *)
+              Ok ()
+          | None, true ->
+              (* bytecode_exe *)
+              Logs.debug (fun l ->
+                  l
+                    "Detected precompiled invocation. Setting environment to \
+                     have relocatable findlib configuration and stub libraries");
+              set_precompiled_env abs_cmd_p
+          | None, false ->
+              (* not bytecode_exe *)
+              Logs.debug (fun l ->
+                  l
+                    "Detected enduser invocation. Setting environment to have \
+                     install-time findlib configuration");
+              set_enduser_env abs_cmd_p
         in
         Ok ([ Fpath.to_string env_exe; Fpath.to_string real_exe ] @ args)
     | _ ->
