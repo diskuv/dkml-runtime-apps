@@ -364,14 +364,14 @@ let create_and_setenv_if_necessary () =
               (* bytecode_exe *)
               Logs.debug (fun l ->
                   l
-                    "Detected precompiled invocation. Setting environment to \
+                    "Detected precompiled invocation of non-opam command. Setting environment to \
                      have relocatable findlib configuration and stub libraries");
               set_precompiled_env abs_cmd_p
           | None, false ->
               (* not bytecode_exe *)
               Logs.debug (fun l ->
                   l
-                    "Detected enduser invocation. Setting environment to have \
+                    "Detected enduser invocation of non-opam command. Setting environment to have \
                      install-time findlib configuration");
               set_enduser_env abs_cmd_p
         in
