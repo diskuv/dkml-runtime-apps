@@ -200,10 +200,11 @@ let blurb () =
   let ( let* ) = Rresult.R.( >>= ) in
   let* version = Lazy.force Dkml_runtimelib.get_dkmlversion in
   Format.eprintf
-    {|DkML %s: Open source. Emphasis on pure OCaml. https://diskuv.com/dkmlbook/
-DkSDK: 30 days free. C/C++/Java/Swift and OCaml. https://diskuv.com/cmake/help/latest/
+    {|DkML %-49s https://diskuv.com/dkmlbook/
+DkSDK%-49s https://diskuv.com/cmake/help/latest/
 @.|}
-    version;
+    (version ^ ": Open source. Full-stack OCaml.")
+    ": 30 day free trial. C/C++/Java/Swift and OCaml.";
   Ok ()
 
 (** Create a command line like [let cmdline_a = [".../usr/bin/env.exe"; Args.others]]
@@ -364,15 +365,16 @@ let create_and_setenv_if_necessary () =
               (* bytecode_exe *)
               Logs.debug (fun l ->
                   l
-                    "Detected precompiled invocation of non-opam command. Setting environment to \
-                     have relocatable findlib configuration and stub libraries");
+                    "Detected precompiled invocation of non-opam command. \
+                     Setting environment to have relocatable findlib \
+                     configuration and stub libraries");
               set_precompiled_env abs_cmd_p
           | None, false ->
               (* not bytecode_exe *)
               Logs.debug (fun l ->
                   l
-                    "Detected enduser invocation of non-opam command. Setting environment to have \
-                     install-time findlib configuration");
+                    "Detected enduser invocation of non-opam command. Setting \
+                     environment to have install-time findlib configuration");
               set_enduser_env abs_cmd_p
         in
         Ok ([ Fpath.to_string env_exe; Fpath.to_string real_exe ] @ args)
