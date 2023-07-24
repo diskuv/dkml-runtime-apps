@@ -20,7 +20,6 @@ open Dkml_runtimelib
 open Dkml_runtimelib.Dkml_environment
 
 let usage_msg = "with-dkml.exe CMD [ARGS...]\n"
-
 let crossplatfuncs = Option.get @@ Crossplat.read "crossplatform-functions.sh"
 
 (* [msvc_as_is_vars] is the list of environment variables created by VsDevCmd.bat that
@@ -405,16 +404,18 @@ let prepend_entries ~tools installed_dir =
         Fpath.(installed_dir / "lib" / "pkgconfig" |> to_string)
   >>= fun () ->
   (if tools then
-   OS.Path.query Fpath.(installed_dir / "tools" / "$(tool)" / "$(file).exe")
-   >>= fun matches ->
-   R.ok (List.map (fun (_fp, pat) -> Astring.String.Map.get "tool" pat) matches)
-   >>= fun tools_with_exe ->
-   OS.Path.query Fpath.(installed_dir / "tools" / "$(tool)" / "$(file).dll")
-   >>= fun matches ->
-   R.ok (List.map (fun (_fp, pat) -> Astring.String.Map.get "tool" pat) matches)
-   >>| fun tools_with_dll ->
-   List.sort_uniq String.compare (tools_with_exe @ tools_with_dll)
-  else R.ok [])
+     OS.Path.query Fpath.(installed_dir / "tools" / "$(tool)" / "$(file).exe")
+     >>= fun matches ->
+     R.ok
+       (List.map (fun (_fp, pat) -> Astring.String.Map.get "tool" pat) matches)
+     >>= fun tools_with_exe ->
+     OS.Path.query Fpath.(installed_dir / "tools" / "$(tool)" / "$(file).dll")
+     >>= fun matches ->
+     R.ok
+       (List.map (fun (_fp, pat) -> Astring.String.Map.get "tool" pat) matches)
+     >>| fun tools_with_dll ->
+     List.sort_uniq String.compare (tools_with_exe @ tools_with_dll)
+   else R.ok [])
   >>= fun uniq_tools ->
   let installed_path =
     Fpath.(installed_dir / "bin" |> to_string)
@@ -543,6 +544,7 @@ let main_with_result () =
            subprocess of some with-dkml.exe");
 
   Lazy.force get_dkmlversion >>= fun dkmlversion ->
+  Lazy.force get_dkmlmode >>= fun dkmlmode ->
   Rresult.R.error_to_msg ~pp_error:Fmt.string
     (Dkml_c_probe.C_abi.V2.get_abi_name ())
   >>= fun target_abi ->
@@ -563,7 +565,11 @@ let main_with_result () =
        can be inserted by VsDevCmd.bat before any MSYS2 `link.exe`. (`link.exe` is one example of many
        possible conflicts).
   *)
-  let* () = set_msys2_entries ~minimize_sideeffects target_abi in
+  let* () =
+    match dkmlmode with
+    | Nativecode -> set_msys2_entries ~minimize_sideeffects target_abi
+    | Bytecode -> Ok ()
+  in
   let* () =
     if minimize_sideeffects then Ok ()
     else
@@ -571,10 +577,13 @@ let main_with_result () =
       set_tempvar_entries cache_keys >>= fun cache_keys ->
       (* FOURTH, set MSVC entries.
          Since MSVC requires temporary variables, we do this after temp vars *)
-      set_msvc_entries cache_keys >>= fun cache_keys ->
+      (match dkmlmode with
+      | Nativecode -> set_msvc_entries cache_keys
+      | Bytecode -> Ok cache_keys)
+      >>= fun cache_keys ->
       (* FIFTH, set third-party (3p) prefix entries.
-         Since MSVC overwrites INCLUDE and LIB entirely, we have to do vcpkg entries
-         _after_ MSVC. *)
+         Since MSVC overwrites INCLUDE and LIB entirely, we have to do
+         third party entries (like vcpkg) _after_ MSVC. *)
       set_3p_prefix_entries cache_keys >>= fun cache_keys ->
       (* SIXTH, set third-party (3p) program entries. *)
       set_3p_program_entries cache_keys >>= fun _cache_keys ->
