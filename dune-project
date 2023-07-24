@@ -17,7 +17,7 @@
  (synopsis "Runtime library used by CLI applications and Opam plugins in a Diskuv OCaml installation")
  (depends
   (ocaml        (>= 4.12.1))
-  (bos          (>= 0.2.0))
+  (bos          (>= 0.2.1))
   (sexplib      (>= 0.14.0))
   (dkml-c-probe (>= 3.0.0))))
 
@@ -26,7 +26,7 @@
  (synopsis "Runtime scripts used by CLI applications and Opam plugins in a Diskuv OCaml installation")
  (depends
   (ocaml        (>= 4.12.1))
-  (bos          (>= 0.2.0))
+  (bos          (>= 0.2.1))
   (fpath        (>= 0.7.0))
   (re           (>= 1.10.0))
   (rresult      (>= 0.7.0))
@@ -53,7 +53,7 @@
  (description "'dkml-fswatch' is a Windows port of fswatch suitable for 'dune --watch'.")
  (depends
   (ocaml              (>= 4.12.1))
-  (bos                (>= 0.2.0))
+  (bos                (>= 0.2.1))
   (dune-configurator  (>= 2.9.3))))
 
 (package
