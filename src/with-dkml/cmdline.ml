@@ -204,7 +204,7 @@ let blurb () =
 DkSDK%-49s https://diskuv.com/cmake/help/latest/
 @.|}
     (version ^ ": Open source. Full-stack OCaml.")
-    ": 30 day free trial. C/C++/Java/Swift and OCaml.";
+    ": 30 day risk free. C/C++/Java/Swift and OCaml.";
   Ok ()
 
 (** Create a command line like [let cmdline_a = [".../usr/bin/env.exe"; Args.others]]
