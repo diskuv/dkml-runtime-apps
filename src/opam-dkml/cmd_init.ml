@@ -20,8 +20,8 @@ let buildtype_t =
   let doc =
     Fmt.str "[DEPRECATED]. %s. Only used when --%s is given."
       (if Sys.win32 then {|$(b,Debug) or $(b,Release)|}
-      else
-        {|$(b,Debug), $(b,Release), $(b,ReleaseCompatPerf), or $(b,ReleaseCompatFuzz)|})
+       else
+         {|$(b,Debug), $(b,Release), $(b,ReleaseCompatPerf), or $(b,ReleaseCompatFuzz)|})
       non_system_opt
   in
   let docv = "BUILDTYPE" in
@@ -67,13 +67,8 @@ let run f_setup localdir_fp_opt buildtype yes non_system_compiler =
       (* Find optional MSYS2 *)
       Lazy.force Dkml_runtimelib.get_msys2_dir_opt >>= fun msys2_dir_opt ->
       (* Find env *)
-      Fpath.of_string "/" >>= fun slash ->
-      (match msys2_dir_opt with
-      | None -> Ok Fpath.(slash / "usr" / "bin" / "env")
-      | Some msys2_dir ->
-          Logs.debug (fun m -> m "MSYS2 directory: %a" Fpath.pp msys2_dir);
-          Ok Fpath.(msys2_dir / "usr" / "bin" / "env.exe"))
-      >>= fun env_exe ->
+      Dkml_runtimelib.Dkml_environment.env_exe_wrapper ()
+      >>= fun env_exe_wrapper ->
       (* Find target ABI *)
       Rresult.R.error_to_msg ~pp_error:Fmt.string
         (Dkml_c_probe.C_abi.V2.get_abi_name ())
@@ -82,18 +77,18 @@ let run f_setup localdir_fp_opt buildtype yes non_system_compiler =
       OS.Cmd.get_tool (Cmd.v "opam") >>= fun opam_fp ->
       let opam_bin1_fp, _ = Fpath.split_base opam_fp in
       (if "bin" = Fpath.basename opam_bin1_fp then Ok ()
-      else
-        Rresult.R.error_msgf "Expected %a to be in a bin/ directory" Fpath.pp
-          opam_fp)
+       else
+         Rresult.R.error_msgf "Expected %a to be in a bin/ directory" Fpath.pp
+           opam_fp)
       >>= fun () ->
       let opam_home_fp, _ = Fpath.split_base opam_bin1_fp in
       (* Figure out OCAMLHOME containing usr/bin/ocamlc or bin/ocamlc *)
       OS.Cmd.get_tool (Cmd.v "ocamlc") >>= fun ocaml_fp ->
       let ocaml_bin1_fp, _ = Fpath.split_base ocaml_fp in
       (if "bin" = Fpath.basename ocaml_bin1_fp then Ok ()
-      else
-        Rresult.R.error_msgf "Expected %a to be in a bin/ directory" Fpath.pp
-          ocaml_fp)
+       else
+         Rresult.R.error_msgf "Expected %a to be in a bin/ directory" Fpath.pp
+           ocaml_fp)
       >>= fun () ->
       let ocaml_bin2_fp, _ = Fpath.split_base ocaml_bin1_fp in
       let ocaml_bin3_fp, _ = Fpath.split_base ocaml_bin2_fp in
@@ -110,21 +105,21 @@ let run f_setup localdir_fp_opt buildtype yes non_system_compiler =
       let create_switch_fp = Fpath.(scripts_dir_fp // rel_fp) in
       let cmd =
         Cmd.of_list
-          ([
-             Fpath.to_string env_exe;
-             "/bin/sh";
-             Fpath.to_string create_switch_fp;
-             "-p";
-             target_abi;
-             "-t";
-             Fpath.to_string localdir_fp;
-             "-o";
-             Fpath.to_string opam_home_fp;
-             "-m";
-             "conf-withdkml";
-           ]
+          (env_exe_wrapper
+          @ [
+              "/bin/sh";
+              Fpath.to_string create_switch_fp;
+              "-p";
+              target_abi;
+              "-t";
+              Fpath.to_string localdir_fp;
+              "-o";
+              Fpath.to_string opam_home_fp;
+              "-m";
+              "conf-withdkml";
+            ]
           @ (if non_system_compiler then []
-            else [ "-v"; Fpath.to_string ocaml_home_fp ])
+             else [ "-v"; Fpath.to_string ocaml_home_fp ])
           @ (if yes then [ "-y" ] else [])
           @ (match msys2_dir_opt with
             | None -> []

@@ -117,7 +117,7 @@ let set_msys2_entries ~minimize_sideeffects target_platform_name =
       (* 3. Remove MSYS2 entries, if any, from PATH
             _unless_ we are minimizing side-effects *)
       (if minimize_sideeffects then Ok ()
-      else prune_path_of_msys2 msystem_prefix)
+       else prune_path_of_msys2 msystem_prefix)
       >>= fun () ->
       (* 4. Add MSYS2 <prefix>/bin and /usr/bin to front of PATH
             _unless_ we are minimizing side-effects. *)
@@ -130,3 +130,19 @@ let set_msys2_entries ~minimize_sideeffects target_platform_name =
              ^ ";"
              ^ Fpath.(msys2_dir / "usr" / "bin" |> to_string)
              ^ ";" ^ path))
+
+(** Get a wrapper like /usr/bin/env or equivalent or nothing *)
+let env_exe_wrapper () =
+  let ( let* ) = Rresult.R.( >>= ) in
+  let* slash = Fpath.of_string "/" in
+  let* x = Lazy.force Dkml_context.get_msys2_dir_opt in
+  match (x, Sys.win32) with
+  | None, true ->
+      (* On Windows w/o MSYS2 (like Bytecode Edition) there will be no env. *)
+      Ok []
+  | None, false ->
+      (* /usr/bin/env should always exist on Unix. *)
+      Ok [ Fpath.(slash / "usr" / "bin" / "env" |> to_string) ]
+  | Some msys2_dir, _ ->
+      Logs.debug (fun m -> m "MSYS2 directory: %a" Fpath.pp msys2_dir);
+      Ok [ Fpath.(msys2_dir / "usr" / "bin" / "env.exe" |> to_string) ]

@@ -252,15 +252,7 @@ DkSDK%-49s https://diskuv.com/cmake/help/latest/
 let create_and_setenv_if_necessary () =
   let ( let* ) = Rresult.R.( >>= ) in
   let ( let+ ) = Rresult.R.( >>| ) in
-  let* slash = Fpath.of_string "/" in
-  let* env_exe =
-    let* x = Lazy.force Dkml_runtimelib.get_msys2_dir_opt in
-    match x with
-    | None -> Ok Fpath.(slash / "usr" / "bin" / "env")
-    | Some msys2_dir ->
-        Logs.debug (fun m -> m "MSYS2 directory: %a" Fpath.pp msys2_dir);
-        Ok Fpath.(msys2_dir / "usr" / "bin" / "env.exe")
-  in
+  let* env_exe_wrapper = Dkml_runtimelib.Dkml_environment.env_exe_wrapper () in
   let get_authoritative_opam_exe () =
     match Lazy.force find_authoritative_opam_exe with
     | Some authoritative_opam_exe ->
@@ -316,8 +308,7 @@ let create_and_setenv_if_necessary () =
   let+ cmd_and_args =
     match Array.to_list Sys.argv with
     (* CMDLINE_A FORM *)
-    | cmd :: args when is_with_dkml_exe cmd ->
-        Ok ([ Fpath.to_string env_exe ] @ args)
+    | cmd :: args when is_with_dkml_exe cmd -> Ok (env_exe_wrapper @ args)
     (* CMDLINE_B FORM *)
     | cmd :: "env" :: args when is_opam_exe cmd ->
         Logs.debug (fun l ->
@@ -377,7 +368,7 @@ let create_and_setenv_if_necessary () =
                      environment to have install-time findlib configuration");
               set_enduser_env abs_cmd_p
         in
-        Ok ([ Fpath.to_string env_exe; Fpath.to_string real_exe ] @ args)
+        Ok (env_exe_wrapper @ [ Fpath.to_string real_exe ] @ args)
     | _ ->
         Rresult.R.error_msgf "You need to supply a command, like `%s bash`"
           OS.Arg.exec
