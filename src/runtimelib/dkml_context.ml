@@ -74,6 +74,11 @@ let get_dkmlenv_opt =
                 in
                 List [ Atom "DiskuvOCamlBinaryPaths"; List bpaths ] :: lst
           in
+          let lst =
+            match OS.Env.var "DiskuvOCamlMode" with
+            | None | Some "" -> lst
+            | Some v -> List [ Atom "DiskuvOCamlMode"; List [ Atom v ] ] :: lst
+          in
           Ok
             (Some
                (List
