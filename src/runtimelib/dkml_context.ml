@@ -141,6 +141,10 @@ let get_dkmlversion =
 
 type dkmlmode = Nativecode | Bytecode
 
+let pp_dkmlmode fmt = function
+  | Nativecode -> Fmt.pf fmt "Nativecode"
+  | Bytecode -> Fmt.pf fmt "Bytecode"
+
 (* Get DKML mode. Defaults to nativecode *)
 let get_dkmlmode =
   lazy

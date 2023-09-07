@@ -16,6 +16,8 @@ val get_dkmlversion : (string, Rresult.R.msg) result lazy_t
 
 type dkmlmode = Nativecode | Bytecode
 
+val pp_dkmlmode : Format.formatter -> dkmlmode -> unit
+
 val get_dkmlmode : (dkmlmode, Rresult.R.msg) result lazy_t
 
 val association_list_of_sexp : Sexplib.Sexp.t -> (string * string) list

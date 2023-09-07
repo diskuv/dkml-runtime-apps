@@ -57,6 +57,8 @@ let is_with_dkml_exe filename =
 let is_bytecode_exe path =
   let ( let* ) = Rresult.R.( >>= ) in
   let* mode = Lazy.force Dkml_runtimelib.get_dkmlmode in
+  Logs.debug (fun l ->
+      l "Detected DiskuvOCamlMode = %a" Dkml_runtimelib.pp_dkmlmode mode);
   let execs = [ "down"; "ocaml"; "ocamlc"; "utop"; "utop-full" ] in
   let execs =
     match mode with
