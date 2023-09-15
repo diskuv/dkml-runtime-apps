@@ -203,7 +203,7 @@ let blurb () =
   let* version = Lazy.force Dkml_runtimelib.get_dkmlversion in
   Format.eprintf
     {|DkML %-49s https://diskuv.com/dkmlbook/
-DkSDK%-49s https://diskuv.com/cmake/help/latest/
+DkSDK%-49s https://diskuv.com/pricing
 @.|}
     (version ^ ": Open source. Full-stack OCaml.")
     ": 30 day risk free. C/C++/Java/Swift and OCaml.";
