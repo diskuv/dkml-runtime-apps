@@ -1,6 +1,5 @@
 open Bos
 open Rresult
-open Dkml_runtimelib
 
 let fpath_notnull f = Fpath.compare OS.File.null f <> 0
 
@@ -34,16 +33,10 @@ let get_opam_root =
             "Unable to locate Opam root because none of LOCALAPPDATA, \
              XDG_CONFIG_HOME, HOME or OPAMROOT was set" )
 
-(** [get_opam_switch_prefix] is a lazy function that gets the OPAM_SWITCH_PREFIX environment variable.
-    If OPAM_SWITCH_PREFIX is not found, then the Opam switch <dkmlhome_dir>/dkml (defined on Windows DKML)
-    with a fallback to <OPAMROOT>/default is used instead. *)
 let get_opam_switch_prefix =
   lazy
-    ( Lazy.force get_dkmlhome_dir_opt >>= fun dkmlhome_dir_opt ->
-      Lazy.force get_opam_root >>= fun opamroot ->
+    ( Lazy.force get_opam_root >>= fun opamroot ->
       OS.Env.parse "OPAM_SWITCH_PREFIX" OS.Env.path ~absent:OS.File.null
       >>| fun opamswitchprefix ->
-      match (fpath_notnull opamswitchprefix, dkmlhome_dir_opt) with
-      | true, _ -> opamswitchprefix
-      | false, Some dkmlhome_dir -> Fpath.(dkmlhome_dir / "dkml")
-      | false, None -> Fpath.(opamroot / "default") )
+      if fpath_notnull opamswitchprefix then opamswitchprefix
+      else Fpath.(opamroot / "playground") )

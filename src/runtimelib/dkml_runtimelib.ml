@@ -1,6 +1,7 @@
 open Bos
 open Astring
 include Dkml_context
+include Opam_context
 module Dkml_environment = Dkml_environment
 
 module Monadic_operators = struct

@@ -15,7 +15,6 @@ open Bos
 open Rresult
 open Astring
 open Sexplib
-open Opam_context
 open Dkml_runtimelib
 open Dkml_runtimelib.Dkml_environment
 
