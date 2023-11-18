@@ -17,8 +17,11 @@ let non_system_compiler_t =
   Arg.(value & flag & info [ non_system_opt ] ~doc)
 
 let buildtype_t =
+  let deprecated =
+    "The --build-type option is ignored and will be removed in a future version"
+  in
   let doc =
-    Fmt.str "[DEPRECATED]. %s. Only used when --%s is given."
+    Fmt.str "%s. Only used when --%s is given."
       (if Sys.win32 then {|$(b,Debug) or $(b,Release)|}
        else
          {|$(b,Debug), $(b,Release), $(b,ReleaseCompatPerf), or $(b,ReleaseCompatFuzz)|})
@@ -37,7 +40,8 @@ let buildtype_t =
         ]
   in
   Arg.(
-    value & opt conv_buildtype Release & info [ "b"; "build-type" ] ~doc ~docv)
+    value & opt conv_buildtype Release
+    & info [ "b"; "build-type" ] ~doc ~docv ~deprecated)
 
 let run f_setup localdir_fp_opt buildtype yes non_system_compiler =
   f_setup () >>= fun () ->
@@ -54,7 +58,7 @@ let run f_setup localdir_fp_opt buildtype yes non_system_compiler =
          to exist. Don't assume that just because we compiled dkml.exe
          that the DKML version at compile time (obtainable from
          dkml-runtime-common) will be what is present in <DKML_home>/repos!
-         
+
          2023-11-18: There is no more fdopen-mingw local versioned opam
          repository, so this dkmlversion may be superfluous now. *)
       Lazy.force Dkml_runtimelib.get_dkmlversion >>= fun dkmlversion ->
