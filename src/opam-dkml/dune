@@ -1,33 +1,3 @@
-(rule
- (target dkml_config.ml)
- (action
-  (with-stdout-to
-   %{target}
-   (progn
-    (echo "let version = {|%{version:dkml-exe-lib}|}\n")))))
-
-(library
- (name dkml_exe_lib)
- (public_name dkml-exe-lib)
- (modules cmd_init dkml_exe_lib dkml_config)
- (libraries
-  ; opam-client ... so sad that we don't have it (actually dose3.5.0.1-1) working yet for MSVC!
-  dkml_runtimescripts
-  dkml_runtimelib
-  bos
-  logs
-  logs.fmt
-  fmt
-  fmt.tty
-  cmdliner))
-
-(executable
- (name dkml_exe)
- (public_name dkml)
- (package dkml-exe)
- (modules dkml_exe)
- (libraries dkml-exe-lib))
-
 (executable
  (name opam_dkml)
  (public_name opam-dkml)
