@@ -44,7 +44,6 @@ let run f_setup localdir_fp_opt buildtype yes non_system_compiler =
   OS.Dir.with_tmp "dkml-scripts-%s"
     (fun dir_fp () ->
       let scripts_dir_fp = Fpath.(dir_fp // v "scripts") in
-      let top_dir_fp = Fpath.(dir_fp // v "topdir") in
       (* Find installed dkmlversion.
 
          Why installed dkmlversion?
@@ -99,9 +98,6 @@ let run f_setup localdir_fp_opt buildtype yes non_system_compiler =
         if "usr" = Fpath.basename ocaml_bin2_fp then ocaml_bin3_fp
         else ocaml_bin2_fp
       in
-      (* Set TOPDIR environment variable (why do we still need this?) *)
-      OS.Dir.create top_dir_fp >>= fun _existed ->
-      OS.Env.set_var "TOPDIR" (Some (Fpath.to_string top_dir_fp)) >>= fun () ->
       (* Assemble command line arguments *)
       Fpath.of_string "vendor/drd/src/unix/create-opam-switch.sh"
       >>= fun rel_fp ->
