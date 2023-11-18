@@ -5,7 +5,7 @@
   )
  (action
   (progn
-   (run install -d crossplat)
+   (system "mkdir crossplat")
    (no-infer (copy %{cf} crossplat/crossplatform-functions.sh))
    (run
     %{bin:ocaml-crunch}

@@ -15,8 +15,25 @@
   (:poe     "%{lib:dkml-runtime-distribution:src/unix/private/platform-opam-exec.sh}")
   )
  (action
+  ; make directories portable to Command Prompt (which does not allow subdirs)
+  ; == (run install -d  dkmldir/vendor/drd/src/unix/private dkmldir/vendor/dkml-compiler/env dkmldir/vendor/drc/unix)
   (progn
-   (run install -d  dkmldir/vendor/drd/src/unix/private dkmldir/vendor/dkml-compiler/env dkmldir/vendor/drc/unix)
+   (with-accepted-exit-codes (or 0 1) (system "mkdir dkmldir"))
+   (chdir dkmldir
+    (progn
+     (with-accepted-exit-codes (or 0 1) (system "mkdir vendor"))
+     (chdir vendor
+      (progn
+       (with-accepted-exit-codes (or 0 1) (system "mkdir dkml-compiler"))
+       (with-accepted-exit-codes (or 0 1) (system "mkdir drc"))
+       (with-accepted-exit-codes (or 0 1) (system "mkdir drd"))
+       (chdir dkml-compiler (with-accepted-exit-codes (or 0 1) (system "mkdir env")))
+       (chdir drc (with-accepted-exit-codes (or 0 1) (system "mkdir unix")))
+       (chdir drd (progn
+        (with-accepted-exit-codes (or 0 1) (system "mkdir src"))
+        (chdir src (progn
+         (with-accepted-exit-codes (or 0 1) (system "mkdir unix"))
+         (chdir unix (with-accepted-exit-codes (or 0 1) (system "mkdir private")))))))))))
    (no-infer
     (progn
      (copy %{scetoce} dkmldir/vendor/dkml-compiler/env/standard-compiler-env-to-ocaml-configure-env.sh)
