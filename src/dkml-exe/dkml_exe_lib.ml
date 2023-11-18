@@ -68,19 +68,23 @@ let init_t =
   @@ Term.(
        const rresult_to_term_result
        $ (const Cmd_init.run $ const setup $ localdir_opt_t
-        $ Cmd_init.buildtype_t $ yes_t $ Cmd_init.non_system_compiler_t))
+        $ Cmd_init.buildtype_t $ yes_t $ Cmd_init.non_system_compiler_t
+        $ Cmd_init.system_only_t))
 
 let init_info =
   Cmd.info
     ~doc:
-      "Creates or updates an `_opam` subdirectory from zero or more `*.opam` \
-       files in the local directory"
+      "Creates or updates an `_opam` subdirectory and initializes the system \
+       if necessary"
     ~man:
       [
         `P
-          "The `_opam` directory, also known as the local Opam switch, holds \
-           an OCaml compiler and all of the packages that are specified in the \
-           `*.opam` files.";
+          "The `_opam` directory, also known as the local opam switch, holds \
+           an OCaml compiler.";
+        `P
+          "The system that will be initialized is the OCaml system compiler, \
+           the package cache (\"opam root\"), and a global `playground` opam \
+           switch";
       ]
     "init"
 

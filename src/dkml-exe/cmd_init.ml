@@ -4,6 +4,13 @@ module Arg = Cmdliner.Arg
 
 type buildtype = Debug | Release | ReleaseCompatPerf | ReleaseCompatFuzz
 
+let system_only_t =
+  let doc =
+    "Skip the creation of the `_opam` subdirectory but still initialize the \
+     system if it hasn't been initialized."
+  in
+  Arg.(value & flag & info [ "system" ] ~doc)
+
 let non_system_opt = "non-system-compiler"
 
 let non_system_compiler_t =
@@ -43,7 +50,74 @@ let buildtype_t =
     value & opt conv_buildtype Release
     & info [ "b"; "build-type" ] ~doc ~docv ~deprecated)
 
-let run f_setup localdir_fp_opt buildtype yes non_system_compiler =
+let create_local_switch ~scripts_dir_fp ~yes ~env_exe_wrapper ~target_abi
+    ~buildtype ~non_system_compiler ~msys2_dir_opt ~localdir_fp ~opam_home_fp
+    ~ocaml_home_fp =
+  (* Assemble command line arguments *)
+  Fpath.of_string "vendor/drd/src/unix/create-opam-switch.sh" >>= fun rel_fp ->
+  let create_switch_fp = Fpath.(scripts_dir_fp // rel_fp) in
+  let cmd =
+    Cmd.of_list
+      (env_exe_wrapper
+      @ [
+          "/bin/sh";
+          Fpath.to_string create_switch_fp;
+          "-p";
+          target_abi;
+          "-t";
+          Fpath.to_string localdir_fp;
+          "-o";
+          Fpath.to_string opam_home_fp;
+          "-m";
+          "conf-withdkml";
+        ]
+      @ (if non_system_compiler then []
+         else [ "-v"; Fpath.to_string ocaml_home_fp ])
+      @ (if yes then [ "-y" ] else [])
+      @ (match msys2_dir_opt with
+        | None -> []
+        | Some msys2_dir ->
+            (*
+             MSYS2 sets PKG_CONFIG_SYSTEM_{INCLUDE,LIBRARY}_PATH which causes
+             native Windows pkgconf to not see MSYS2 packages.
+
+             Confer:
+             https://github.com/pkgconf/pkgconf#compatibility-with-pkg-config
+             https://github.com/msys2/MSYS2-packages/blob/f953d15d0ede1dfb8656a8b3e27c2b694fa1e9a7/filesystem/profile#L54-L55
+
+             Replicated (and need to change if these change):
+             [dkml/packaging/version-bump/upsert-dkml-switch.in.sh]
+             [dkml-component-ocamlcompiler/assets/staging-files/win32/setup-userprofile.ps1]
+          *)
+            [
+              "-e";
+              Fmt.str "PKG_CONFIG_PATH=%a" Fpath.pp
+                Fpath.(msys2_dir / "clang64" / "lib" / "pkgconfig");
+              "-e";
+              "PKG_CONFIG_SYSTEM_INCLUDE_PATH=";
+              "-e";
+              "PKG_CONFIG_SYSTEM_LIBRARY_PATH=";
+            ])
+      @
+      match buildtype with
+      | Debug -> [ "-b"; "Debug" ]
+      | Release -> [ "-b"; "Release" ]
+      | ReleaseCompatPerf -> [ "-b"; "ReleaseCompatPerf" ]
+      | ReleaseCompatFuzz -> [ "-b"; "ReleaseCompatFuzz" ])
+  in
+  Logs.info (fun m -> m "Running command: %a" Cmd.pp cmd);
+  (* Run the command in the local directory *)
+  OS.Cmd.run_status cmd >>= function
+  | `Exited 0 -> Ok 0
+  | `Exited status ->
+      Rresult.R.error_msgf "%a exited with error code %d" Fpath.pp
+        Fpath.(v "<builtin>" // rel_fp)
+        status
+  | `Signaled signal ->
+      (* https://stackoverflow.com/questions/1101957/are-there-any-standard-exit-status-codes-in-linux/1535733#1535733 *)
+      Ok (128 + signal)
+
+let run f_setup localdir_fp_opt buildtype yes non_system_compiler system_only =
   f_setup () >>= fun () ->
   OS.Dir.with_tmp "dkml-scripts-%s"
     (fun dir_fp () ->
@@ -102,70 +176,11 @@ let run f_setup localdir_fp_opt buildtype yes non_system_compiler =
         if "usr" = Fpath.basename ocaml_bin2_fp then ocaml_bin3_fp
         else ocaml_bin2_fp
       in
-      (* Assemble command line arguments *)
-      Fpath.of_string "vendor/drd/src/unix/create-opam-switch.sh"
-      >>= fun rel_fp ->
-      let create_switch_fp = Fpath.(scripts_dir_fp // rel_fp) in
-      let cmd =
-        Cmd.of_list
-          (env_exe_wrapper
-          @ [
-              "/bin/sh";
-              Fpath.to_string create_switch_fp;
-              "-p";
-              target_abi;
-              "-t";
-              Fpath.to_string localdir_fp;
-              "-o";
-              Fpath.to_string opam_home_fp;
-              "-m";
-              "conf-withdkml";
-            ]
-          @ (if non_system_compiler then []
-             else [ "-v"; Fpath.to_string ocaml_home_fp ])
-          @ (if yes then [ "-y" ] else [])
-          @ (match msys2_dir_opt with
-            | None -> []
-            | Some msys2_dir ->
-                (*
-                   MSYS2 sets PKG_CONFIG_SYSTEM_{INCLUDE,LIBRARY}_PATH which causes
-                   native Windows pkgconf to not see MSYS2 packages.
-
-                   Confer:
-                   https://github.com/pkgconf/pkgconf#compatibility-with-pkg-config
-                   https://github.com/msys2/MSYS2-packages/blob/f953d15d0ede1dfb8656a8b3e27c2b694fa1e9a7/filesystem/profile#L54-L55
-
-                   Replicated (and need to change if these change):
-                   [dkml/packaging/version-bump/upsert-dkml-switch.in.sh]
-                   [dkml-component-ocamlcompiler/assets/staging-files/win32/setup-userprofile.ps1]
-                *)
-                [
-                  "-e";
-                  Fmt.str "PKG_CONFIG_PATH=%a" Fpath.pp
-                    Fpath.(msys2_dir / "clang64" / "lib" / "pkgconfig");
-                  "-e";
-                  "PKG_CONFIG_SYSTEM_INCLUDE_PATH=";
-                  "-e";
-                  "PKG_CONFIG_SYSTEM_LIBRARY_PATH=";
-                ])
-          @
-          match buildtype with
-          | Debug -> [ "-b"; "Debug" ]
-          | Release -> [ "-b"; "Release" ]
-          | ReleaseCompatPerf -> [ "-b"; "ReleaseCompatPerf" ]
-          | ReleaseCompatFuzz -> [ "-b"; "ReleaseCompatFuzz" ])
-      in
-      Logs.info (fun m -> m "Running command: %a" Cmd.pp cmd);
-      (* Run the command in the local directory *)
-      OS.Cmd.run_status cmd >>= function
-      | `Exited 0 -> Ok 0
-      | `Exited status ->
-          Rresult.R.error_msgf "%a exited with error code %d" Fpath.pp
-            Fpath.(v "<builtin>" // rel_fp)
-            status
-      | `Signaled signal ->
-          (* https://stackoverflow.com/questions/1101957/are-there-any-standard-exit-status-codes-in-linux/1535733#1535733 *)
-          Ok (128 + signal))
+      if system_only then Ok 0
+      else
+        create_local_switch ~scripts_dir_fp ~yes ~env_exe_wrapper ~target_abi
+          ~buildtype ~non_system_compiler ~msys2_dir_opt ~localdir_fp
+          ~opam_home_fp ~ocaml_home_fp)
     ()
   >>= function
   | Ok 0 -> Ok ()
