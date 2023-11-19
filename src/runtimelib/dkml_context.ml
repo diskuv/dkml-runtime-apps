@@ -17,17 +17,17 @@ let get_dkmlparenthomedir =
      match req_var "LOCALAPPDATA" with
      | Ok localappdata ->
          Fpath.of_string localappdata >>| fun fp ->
-         Fpath.(fp / "Programs" / "DiskuvOCaml")
+         Fpath.(fp / "Programs" / "DkML")
      | Error _ -> (
          match req_var "XDG_DATA_HOME" with
          | Ok xdg_data_home ->
              Fpath.of_string xdg_data_home >>| fun fp ->
-             Fpath.(fp / "diskuv-ocaml")
+             Fpath.(fp / "dkml")
          | Error _ -> (
              match req_var "HOME" with
              | Ok home ->
                  Fpath.of_string home >>| fun fp ->
-                 Fpath.(fp / ".local" / "share" / "diskuv-ocaml")
+                 Fpath.(fp / ".local" / "share" / "dkml")
              | Error _ as err -> err)))
 
 (** [get_dkmlenv_opt] creates an association list in the format of
