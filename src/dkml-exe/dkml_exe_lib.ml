@@ -67,9 +67,8 @@ let init_t =
   Term.ret
   @@ Term.(
        const rresult_to_term_result
-       $ (const Cmd_init.run $ const setup $ localdir_opt_t
-        $ Cmd_init.buildtype_t $ yes_t $ Cmd_init.non_system_compiler_t
-        $ Cmd_init.system_only_t))
+       $ (const Cmd_init.run $ const setup $ localdir_opt_t $ yes_t
+        $ Cmd_init.non_system_compiler_t $ Cmd_init.system_only_t))
 
 let init_info =
   Cmd.info
@@ -83,7 +82,7 @@ let init_info =
            an OCaml compiler.";
         `P
           "The system that will be initialized is the OCaml system compiler, \
-           the package cache (\"opam root\"), and a global `playground` opam \
+           the \"opam root\" package cache, and a global `playground` opam \
            switch";
       ]
     "init"

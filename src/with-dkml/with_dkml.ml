@@ -586,7 +586,24 @@ let main_with_result () =
       set_3p_prefix_entries cache_keys >>= fun cache_keys ->
       (* SIXTH, set third-party (3p) program entries. *)
       set_3p_program_entries cache_keys >>= fun _cache_keys ->
-      (* SEVENTH, stop tracing variables from propagating. *)
+      (* SEVENTH, initialize the system if necessary *)
+      let f_temp_dir () =
+        Lazy.force get_opam_switch_prefix >>= fun opam_switch_prefix ->
+        Ok Fpath.(opam_switch_prefix / ".dkml" / "init-system")
+      in
+      let f_create_switch_cfg () =
+        (* Extract all DKML scripts into scripts_dir_fp using installed dkmlversion. *)
+        let* temp_dir = f_temp_dir () in
+        let scripts_dir_fp = Fpath.(temp_dir // v "scripts") in
+        let* () =
+          Dkml_runtimescripts.extract_dkml_scripts ~dkmlversion scripts_dir_fp
+        in
+        (* Now we finish gathering information to create switches *)
+        Dkml_runtimelib.CreateSwitchConfig.create ~scripts_dir_fp ()
+      in
+      Dkml_runtimelib.init_system ~f_temp_dir ~f_create_switch_cfg >>= fun ec ->
+      if ec <> 0 then exit ec;
+      (* EIGHTH, stop tracing variables from propagating. *)
       OS.Env.set_var "DKML_BUILD_TRACE" None >>= fun () ->
       OS.Env.set_var "DKML_BUILD_TRACE_LEVEL" None
   in

@@ -26,6 +26,7 @@
  (libraries
   dkml-c-probe
   dkml-runtimelib
+  dkml-runtimescripts
   astring
   bos
   fmt
