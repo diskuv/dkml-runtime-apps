@@ -1,5 +1,5 @@
 module Dkml_environment = Dkml_environment
-module CreateSwitchConfig = Opam_context.CreateSwitchConfig
+module SystemConfig = Opam_context.SystemConfig
 
 module Monadic_operators : sig
   val ( >>= ) : ('a, 'b) result -> ('a -> ('c, 'b) result) -> ('c, 'b) result
@@ -25,15 +25,15 @@ val get_msys2_create_opam_switch_options : Fpath.t option -> string list
 
 val init_system :
   f_temp_dir:(unit -> (Fpath.t, Rresult.R.msg) result) ->
-  f_create_switch_cfg:(unit -> (CreateSwitchConfig.t, Rresult.R.msg) result) ->
+  f_system_cfg:(unit -> (SystemConfig.t, Rresult.R.msg) result) ->
   (int, Rresult.R.msg) result
-(** [init_system ~f_temp_dir ~f_create_switch_cfg] initializes the system OCaml compiler, the opam root and the
+(** [init_system ~f_temp_dir ~f_system_cfg] initializes the system OCaml compiler, the opam root and the
     playground switch.
 
     The [f_temp_dir ()] function will be called to designate a temporary directory if the system is not
     initialized. The temporary directory and all of its parent directories will be created if needed.
 
-    The [f_create_switch_cfg ()] function will be called to collect the prereqs for creating a switch
+    The [f_system_cfg ()] function will be called to collect the prereqs for creating a switch
     if the system is not initialized.
 
     If the system is already initialized, none of the possibly time-consuming functions are called.

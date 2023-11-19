@@ -13,6 +13,7 @@
   (:cf      "%{lib:dkml-runtime-common:unix/crossplatform-functions.sh}")
   (:cos     "%{lib:dkml-runtime-distribution:src/unix/create-opam-switch.sh}")
   (:poe     "%{lib:dkml-runtime-distribution:src/unix/private/platform-opam-exec.sh}")
+  (:ior     "%{lib:dkml-runtime-distribution:src/unix/private/init-opam-root.sh}")
   )
  (action
   ; make directories portable to Command Prompt (which does not allow subdirs)
@@ -42,7 +43,8 @@
      (copy %{ct}      dkmldir/vendor/drc/unix/_common_tool.sh)
      (copy %{cf}      dkmldir/vendor/drc/unix/crossplatform-functions.sh)
      (copy %{cos}     dkmldir/vendor/drd/src/unix/create-opam-switch.sh)
-     (copy %{poe}     dkmldir/vendor/drd/src/unix/private/platform-opam-exec.sh)))
+     (copy %{poe}     dkmldir/vendor/drd/src/unix/private/platform-opam-exec.sh)
+     (copy %{ior}     dkmldir/vendor/drd/src/unix/private/init-opam-root.sh)))
    (run
     %{bin:ocaml-crunch}
     "--mode=plain"

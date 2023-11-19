@@ -3,7 +3,7 @@ open Astring
 include Dkml_context
 include Opam_context
 module Dkml_environment = Dkml_environment
-module CreateSwitchConfig = Opam_context.CreateSwitchConfig
+module SystemConfig = Opam_context.SystemConfig
 
 module Monadic_operators = struct
   (* Result monad operators *)

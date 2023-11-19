@@ -66,7 +66,7 @@ let get_msys2_create_opam_switch_options = function
         "PKG_CONFIG_SYSTEM_LIBRARY_PATH=";
       ]
 
-module CreateSwitchConfig = struct
+module SystemConfig = struct
   type t = {
     scripts_dir_fp : Fpath.t;
     env_exe_wrapper : string list;

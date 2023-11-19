@@ -50,32 +50,32 @@ let buildtype_t =
     value & opt conv_buildtype Release
     & info [ "b"; "build-type" ] ~doc ~docv ~deprecated)
 
-let create_local_switch ~create_switch_cfg ~scripts_dir_fp ~yes
+let create_local_switch ~system_cfg ~scripts_dir_fp ~yes
     ~non_system_compiler ~localdir_fp =
   (* Assemble command line arguments *)
-  let open Dkml_runtimelib.CreateSwitchConfig in
+  let open Dkml_runtimelib.SystemConfig in
   Fpath.of_string "vendor/drd/src/unix/create-opam-switch.sh" >>= fun rel_fp ->
   let create_switch_fp = Fpath.(scripts_dir_fp // rel_fp) in
   let cmd =
     Cmd.of_list
-      (create_switch_cfg.env_exe_wrapper
+      (system_cfg.env_exe_wrapper
       @ [
           "/bin/sh";
           Fpath.to_string create_switch_fp;
           "-p";
-          create_switch_cfg.target_abi;
+          system_cfg.target_abi;
           "-t";
           Fpath.to_string localdir_fp;
           "-o";
-          Fpath.to_string create_switch_cfg.opam_home_fp;
+          Fpath.to_string system_cfg.opam_home_fp;
           "-m";
           "conf-withdkml";
         ]
       @ (if non_system_compiler then []
-         else [ "-v"; Fpath.to_string create_switch_cfg.ocaml_home_fp ])
+         else [ "-v"; Fpath.to_string system_cfg.ocaml_home_fp ])
       @ (if yes then [ "-y" ] else [])
       @ Dkml_runtimelib.get_msys2_create_opam_switch_options
-          create_switch_cfg.msys2_dir_opt)
+          system_cfg.msys2_dir_opt)
   in
   Logs.info (fun m -> m "Running command: %a" Cmd.pp cmd);
   (* Run the command in the local directory *)
@@ -117,17 +117,17 @@ let run f_setup localdir_fp_opt yes non_system_compiler system_only =
         localdir_fp_opt
       >>= fun localdir_fp ->
       (* Configuration for creating switches *)
-      Dkml_runtimelib.CreateSwitchConfig.create ~scripts_dir_fp ()
-      >>= fun create_switch_cfg ->
+      Dkml_runtimelib.SystemConfig.create ~scripts_dir_fp ()
+      >>= fun system_cfg ->
       (* Initialize system if necessary *)
       let f_temp_dir () = Ok Fpath.(dir_fp // v "init-system") in
-      let f_create_switch_cfg () = Ok create_switch_cfg in
-      Dkml_runtimelib.init_system ~f_temp_dir ~f_create_switch_cfg >>= fun ec ->
+      let f_system_cfg () = Ok system_cfg in
+      Dkml_runtimelib.init_system ~f_temp_dir ~f_system_cfg >>= fun ec ->
       if ec <> 0 then exit ec;
       (* Create local switch *)
       if system_only then Ok 0
       else
-        create_local_switch ~create_switch_cfg ~scripts_dir_fp ~yes
+        create_local_switch ~system_cfg ~scripts_dir_fp ~yes
           ~non_system_compiler ~localdir_fp)
     ()
   >>= function

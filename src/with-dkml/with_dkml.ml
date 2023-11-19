@@ -591,7 +591,7 @@ let main_with_result () =
         Lazy.force get_opam_switch_prefix >>= fun opam_switch_prefix ->
         Ok Fpath.(opam_switch_prefix / ".dkml" / "init-system")
       in
-      let f_create_switch_cfg () =
+      let f_system_cfg () =
         (* Extract all DKML scripts into scripts_dir_fp using installed dkmlversion. *)
         let* temp_dir = f_temp_dir () in
         let scripts_dir_fp = Fpath.(temp_dir // v "scripts") in
@@ -599,9 +599,9 @@ let main_with_result () =
           Dkml_runtimescripts.extract_dkml_scripts ~dkmlversion scripts_dir_fp
         in
         (* Now we finish gathering information to create switches *)
-        Dkml_runtimelib.CreateSwitchConfig.create ~scripts_dir_fp ()
+        Dkml_runtimelib.SystemConfig.create ~scripts_dir_fp ()
       in
-      Dkml_runtimelib.init_system ~f_temp_dir ~f_create_switch_cfg >>= fun ec ->
+      Dkml_runtimelib.init_system ~f_temp_dir ~f_system_cfg >>= fun ec ->
       if ec <> 0 then exit ec;
       (* EIGHTH, stop tracing variables from propagating. *)
       OS.Env.set_var "DKML_BUILD_TRACE" None >>= fun () ->
