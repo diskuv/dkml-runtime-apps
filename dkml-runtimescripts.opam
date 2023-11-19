@@ -15,7 +15,7 @@ depends: [
   "fpath" {>= "0.7.0"}
   "re" {>= "1.10.0"}
   "rresult" {>= "0.7.0"}
-  "dkml-compiler-env" {= version}
+  "dkml-compiler-src" {= version}
   "dkml-runtime-common" {= version}
   "dkml-runtime-distribution" {= version}
   "crunch" {>= "3.3.1"}
