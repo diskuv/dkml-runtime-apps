@@ -16,11 +16,16 @@
   (:dcsmeta  "%{lib:dkml-compiler-src:META}"))
  (action
    (with-stdout-to %{target}
-    (run %{exe:getdirname.exe} %{dcsmeta} src env))))
+    (run %{exe:getdirname.exe} %{dcsmeta}))))
 
 (rule
  (target dkml_compiler_src.ml)
- (deps (package dkml-compiler-src)) ; or (deps (universe))
+ ; yuck, depends on the entire dkml-compiler-src findlib package, and with Dune 3.8.3
+ ; found that changes to dkml-compiler-src are not detected by Dune even with
+ ; (deps (package dkml-compiler-src)). The package dependency is probably meant for
+ ; workspace packages, so disable the Dune caching of dkml_compiler_src.ml by making
+ ; a dependency on the installed world universe.
+ (deps (universe))
  (action
   (run
     %{bin:ocaml-crunch}
@@ -66,8 +71,7 @@
          (chdir unix (with-accepted-exit-codes (or 0 1) (system "mkdir private")))))))))))
    (no-infer
     (progn
-     (copy %{td}      dkmldir/vendor/dkml-compiler/template.dkmlroot)
-     (copy %{td}      dkmldir/vendor/dkml-compiler/src/r-c-ocaml-1-setup.sh)
+     (copy %{td}      dkmldir/vendor/drc/template.dkmlroot)
      (copy %{wd}      dkmldir/vendor/drc/unix/_within_dev.sh)
      (copy %{ct}      dkmldir/vendor/drc/unix/_common_tool.sh)
      (copy %{cf}      dkmldir/vendor/drc/unix/crossplatform-functions.sh)

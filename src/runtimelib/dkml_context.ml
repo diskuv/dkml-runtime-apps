@@ -21,8 +21,7 @@ let get_dkmlparenthomedir =
      | Error _ -> (
          match req_var "XDG_DATA_HOME" with
          | Ok xdg_data_home ->
-             Fpath.of_string xdg_data_home >>| fun fp ->
-             Fpath.(fp / "dkml")
+             Fpath.of_string xdg_data_home >>| fun fp -> Fpath.(fp / "dkml")
          | Error _ -> (
              match req_var "HOME" with
              | Ok home ->
@@ -187,7 +186,7 @@ let get_msys2_dir =
             "More or less than one DiskuvOCamlMSYS2Dir in dkmlvars-v2.sexp"
       | None -> R.error_msg "No DiskuvOCamlMSYS2Dir in dkmlvars-v2.sexp" )
 
-(* Get Diskuv OCaml home directory *)
+(* Get DkML home directory *)
 let get_dkmlhome_dir_opt =
   lazy
     (Lazy.force get_dkmlvars_opt >>= function
@@ -196,3 +195,15 @@ let get_dkmlhome_dir_opt =
          match List.assoc_opt "DiskuvOCamlHome" assocl with
          | Some [ v ] -> Fpath.of_string v >>= fun fp -> R.ok (Some fp)
          | Some _ | None -> R.ok None))
+
+(* Get DkML home directory *)
+let get_dkmlhome_dir =
+  lazy
+    (Lazy.force get_dkmlvars >>= function
+     | assocl -> (
+         match List.assoc_opt "DiskuvOCamlHome" assocl with
+         | Some [ v ] -> Fpath.of_string v >>= fun fp -> R.ok fp
+         | Some _ ->
+             R.error_msg
+               "More or less than one DiskuvOCamlHome in dkmlvars-v2.sexp"
+         | None -> R.error_msg "No DiskuvOCamlHome in dkmlvars-v2.sexp"))

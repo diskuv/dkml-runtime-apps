@@ -601,7 +601,7 @@ let main_with_result () =
         (* Now we finish gathering information to create switches *)
         Dkml_runtimelib.SystemConfig.create ~scripts_dir_fp ()
       in
-      Dkml_runtimelib.init_system ~f_temp_dir ~f_system_cfg >>= fun ec ->
+      Dkml_runtimelib.init_system ~f_temp_dir ~f_system_cfg () >>= fun ec ->
       if ec <> 0 then exit ec;
       (* EIGHTH, stop tracing variables from propagating. *)
       OS.Env.set_var "DKML_BUILD_TRACE" None >>= fun () ->

@@ -21,13 +21,15 @@ val get_opam_switch_prefix : (Fpath.t, Rresult.R.msg) result lazy_t
 (** [get_opam_switch_prefix] is a lazy function that gets the OPAM_SWITCH_PREFIX environment variable.
     If OPAM_SWITCH_PREFIX is not found, then a fallback to <OPAMROOT>/playground is used instead. *)
 
-val get_msys2_create_opam_switch_options : Fpath.t option -> string list
+val get_msys2_create_opam_switch_options : SystemConfig.msys2_t -> string list
 
 val init_system :
+  ?enable_imprecise_c99_float_ops:unit ->
   f_temp_dir:(unit -> (Fpath.t, Rresult.R.msg) result) ->
   f_system_cfg:(unit -> (SystemConfig.t, Rresult.R.msg) result) ->
+  unit ->
   (int, Rresult.R.msg) result
-(** [init_system ~f_temp_dir ~f_system_cfg] initializes the system OCaml compiler, the opam root and the
+(** [init_system ?enable_imprecise_c99_float_ops ~f_temp_dir ~f_system_cfg ()] initializes the system OCaml compiler, the opam root and the
     playground switch.
 
     The [f_temp_dir ()] function will be called to designate a temporary directory if the system is not
@@ -37,6 +39,9 @@ val init_system :
     if the system is not initialized.
 
     If the system is already initialized, none of the possibly time-consuming functions are called.
-      
+
+    Use [~enable_imprecise_c99_float_ops=()] if the system has a pre-Haswell or pre-Piledriver CPU, or
+    is in a VirtualBox machine to avoid https://github.com/ocaml/ocaml/issues/12513.
+
     The result will be [Ok 0] if successful or [Ok code = Ok (128 + signal)] if the program was interrupted with
     a signal which you should immediately [exit code]. The result will otherwise be [Error msg] for an error. *)

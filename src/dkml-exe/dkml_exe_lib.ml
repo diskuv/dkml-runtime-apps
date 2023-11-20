@@ -68,7 +68,8 @@ let init_t =
   @@ Term.(
        const rresult_to_term_result
        $ (const Cmd_init.run $ const setup $ localdir_opt_t $ yes_t
-        $ Cmd_init.non_system_compiler_t $ Cmd_init.system_only_t))
+        $ Cmd_init.non_system_compiler_t $ Cmd_init.system_only_t
+        $ Cmd_init.enable_imprecise_c99_float_ops_t))
 
 let init_info =
   Cmd.info

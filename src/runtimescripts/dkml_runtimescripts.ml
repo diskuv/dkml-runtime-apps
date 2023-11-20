@@ -2,7 +2,8 @@ open Bos
 
 let extract_dkml_scripts ~dkmlversion dir_fp =
   let ( let* ) = Result.bind in
-  let file_list_helper file_list dest_fp =
+  let file_list_helper file_list read subdir_fp =
+    let dest_fp = Fpath.(dir_fp // subdir_fp |> normalize) in
     List.fold_left
       (fun acc filename ->
         match acc with
@@ -13,7 +14,11 @@ let extract_dkml_scripts ~dkmlversion dir_fp =
             let target_dir_fp = Fpath.(parent target_fp) in
             OS.Dir.create target_dir_fp |> ignore;
             (* cp script filename *)
-            let script_opt = Dkml_scripts.read filename in
+            let script_opt = read filename in
+            Logs.debug (fun l ->
+                l "[extract_dkml_scripts] <%a> %s present=%b" Fpath.pp subdir_fp
+                  filename
+                  (Option.is_some script_opt));
             Option.fold ~none:(Result.Ok ())
               ~some:(fun script -> OS.File.write ~mode:0x755 target_fp script)
               script_opt
@@ -21,14 +26,16 @@ let extract_dkml_scripts ~dkmlversion dir_fp =
       (Result.Ok ()) file_list
   in
   (* extract everything from Dkml_scripts *)
-  let* () = file_list_helper Dkml_scripts.file_list dir_fp in
+  let* () =
+    file_list_helper Dkml_scripts.file_list Dkml_scripts.read Fpath.(v ".")
+  in
   (* extract everything from Dkml_compiler_src into vendor/dkml-compiler *)
   let* () =
-    file_list_helper Dkml_compiler_src.file_list
-      Fpath.(dir_fp / "vendor" / "dkml-compiler")
+    file_list_helper Dkml_compiler_src.file_list Dkml_compiler_src.read
+      Fpath.(v "vendor" / "dkml-compiler")
   in
   (* create .dkmlroot from template.dkmlroot *)
-  let path = "vendor/dkml-compiler/template.dkmlroot" in
+  let path = "vendor/drc/template.dkmlroot" in
   match Dkml_scripts.read path with
   | Some v ->
       let template = String.trim @@ v in

@@ -11,6 +11,19 @@ let system_only_t =
   in
   Arg.(value & flag & info [ "system" ] ~doc)
 
+let enable_imprecise_c99_float_ops_t =
+  let doc =
+    "This will enable simple but potentially imprecise implementations of C99 \
+     float operations, and is necessary on Windows machines with a pre-Haswell \
+     or pre-Piledriver CPU. It is also necessary with VirtualBox running a \
+     Windows virtual machine. Users with exacting requirements for \
+     mathematical accuracy, numerical precision, and proper handling of \
+     mathematical corner cases and error conditions may need to consider \
+     running their code outside of VirtualBox, on a modern CPU (anything after \
+     2013)."
+  in
+  Arg.(value & flag & info [ "enable-imprecise-c99-float-ops" ] ~doc)
+
 let non_system_opt = "non-system-compiler"
 
 let non_system_compiler_t =
@@ -50,12 +63,17 @@ let buildtype_t =
     value & opt conv_buildtype Release
     & info [ "b"; "build-type" ] ~doc ~docv ~deprecated)
 
-let create_local_switch ~system_cfg ~scripts_dir_fp ~yes
-    ~non_system_compiler ~localdir_fp =
+let create_local_switch ~system_cfg ~scripts_dir_fp ~yes ~non_system_compiler
+    ~localdir_fp =
   (* Assemble command line arguments *)
   let open Dkml_runtimelib.SystemConfig in
   Fpath.of_string "vendor/drd/src/unix/create-opam-switch.sh" >>= fun rel_fp ->
   let create_switch_fp = Fpath.(scripts_dir_fp // rel_fp) in
+  let ocaml_version_option =
+    match system_cfg.ocaml_home_fp_opt with
+    | Some ocaml_home_fp -> Fpath.to_string ocaml_home_fp
+    | None -> system_cfg.ocaml_compiler_version
+  in
   let cmd =
     Cmd.of_list
       (system_cfg.env_exe_wrapper
@@ -71,11 +89,9 @@ let create_local_switch ~system_cfg ~scripts_dir_fp ~yes
           "-m";
           "conf-withdkml";
         ]
-      @ (if non_system_compiler then []
-         else [ "-v"; Fpath.to_string system_cfg.ocaml_home_fp ])
+      @ (if non_system_compiler then [] else [ "-v"; ocaml_version_option ])
       @ (if yes then [ "-y" ] else [])
-      @ Dkml_runtimelib.get_msys2_create_opam_switch_options
-          system_cfg.msys2_dir_opt)
+      @ Dkml_runtimelib.get_msys2_create_opam_switch_options system_cfg.msys2)
   in
   Logs.info (fun m -> m "Running command: %a" Cmd.pp cmd);
   (* Run the command in the local directory *)
@@ -89,7 +105,11 @@ let create_local_switch ~system_cfg ~scripts_dir_fp ~yes
       (* https://stackoverflow.com/questions/1101957/are-there-any-standard-exit-status-codes-in-linux/1535733#1535733 *)
       Ok (128 + signal)
 
-let run f_setup localdir_fp_opt yes non_system_compiler system_only =
+let run f_setup localdir_fp_opt yes non_system_compiler system_only
+    enable_imprecise_c99_float_ops =
+  let enable_imprecise_c99_float_ops =
+    if enable_imprecise_c99_float_ops then Some () else None
+  in
   f_setup () >>= fun () ->
   OS.Dir.with_tmp "dkml-scripts-%s"
     (fun dir_fp () ->
@@ -122,7 +142,9 @@ let run f_setup localdir_fp_opt yes non_system_compiler system_only =
       (* Initialize system if necessary *)
       let f_temp_dir () = Ok Fpath.(dir_fp // v "init-system") in
       let f_system_cfg () = Ok system_cfg in
-      Dkml_runtimelib.init_system ~f_temp_dir ~f_system_cfg >>= fun ec ->
+      Dkml_runtimelib.init_system ?enable_imprecise_c99_float_ops ~f_temp_dir
+        ~f_system_cfg ()
+      >>= fun ec ->
       if ec <> 0 then exit ec;
       (* Create local switch *)
       if system_only then Ok 0
