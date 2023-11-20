@@ -69,6 +69,7 @@ log_trace "$SHARE_REPRODUCIBLE_BUILD_RELPATH"/100co/vendor/dkml-compiler/src/r-c
 log_trace "$SHARE_REPRODUCIBLE_BUILD_RELPATH"/100co/vendor/dkml-compiler/src/r-c-ocaml-9-trim-noargs.sh
 
 # Move binaries from bin/ to usr/bin/
+log_trace install -d "$INSTALLDIR/usr/bin"
 move_bin() {
     mv -v "$INSTALLDIR/bin/$1" "$INSTALLDIR/usr/bin/$1"
 }
@@ -81,9 +82,13 @@ move_bin_if_found() {
 if is_unixy_windows_build_machine; then
     exe_ext=.exe
     move_bin_if_found flexdll_initer_msvc64.obj # windows_x86_64
-    move_bin_if_found flexdll_initer_msvc.obj	# windows_x86
+    move_bin_if_found flexdll_initer_msvc.obj   # windows_x86
+    move_bin_if_found default_amd64.manifest    # windows_x86_64
+    move_bin_if_found default.manifest          # windows_x86
     move_bin_if_found flexdll_msvc64.obj    # windows_x86_64
     move_bin_if_found flexdll_msvc.obj      # windows_x86
+    move_bin_if_found flexlink.byte.exe
+    move_bin_if_found flexlink.opt.exe
     move_bin flexlink.exe
 else
     exe_ext=

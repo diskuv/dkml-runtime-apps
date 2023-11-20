@@ -45,7 +45,11 @@
   (:cos     "%{lib:dkml-runtime-distribution:src/unix/create-opam-switch.sh}")
   (:poe     "%{lib:dkml-runtime-distribution:src/unix/private/platform-opam-exec.sh}")
   (:ior     "%{lib:dkml-runtime-distribution:src/unix/private/init-opam-root.sh}")
+  (:wdh     "%{lib:dkml-runtime-distribution:src/windows/DeploymentHash/DeploymentHash.psm1}")
+  (:wmc     "%{lib:dkml-runtime-distribution:src/windows/Machine/Machine.psm1}")
   (:ioc     scripts/install-ocaml-compiler.sh)
+  (:fvb     scripts/cache-vsstudio.bat)
+  (:fvp     scripts/cache-vsstudio.ps1)
   )
  (action
   ; make directories portable to Command Prompt (which does not allow subdirs)
@@ -68,7 +72,11 @@
         (with-accepted-exit-codes (or 0 1) (system "mkdir src"))
         (chdir src (progn
          (with-accepted-exit-codes (or 0 1) (system "mkdir unix"))
-         (chdir unix (with-accepted-exit-codes (or 0 1) (system "mkdir private")))))))))))
+         (with-accepted-exit-codes (or 0 1) (system "mkdir windows"))
+         (chdir unix (with-accepted-exit-codes (or 0 1) (system "mkdir private")))
+         (chdir windows (progn
+          (with-accepted-exit-codes (or 0 1) (system "mkdir DeploymentHash"))
+          (with-accepted-exit-codes (or 0 1) (system "mkdir Machine"))))))))))))
    (no-infer
     (progn
      (copy %{td}      dkmldir/vendor/drc/template.dkmlroot)
@@ -78,11 +86,13 @@
      (copy %{cos}     dkmldir/vendor/drd/src/unix/create-opam-switch.sh)
      (copy %{poe}     dkmldir/vendor/drd/src/unix/private/platform-opam-exec.sh)
      (copy %{ior}     dkmldir/vendor/drd/src/unix/private/init-opam-root.sh)
-     (copy %{ioc}     dkmldir/install-ocaml-compiler.sh)))
+     (copy %{wdh}     dkmldir/vendor/drd/src/windows/DeploymentHash/DeploymentHash.psm1)
+     (copy %{wmc}     dkmldir/vendor/drd/src/windows/Machine/Machine.psm1)
+     (copy %{ioc}     dkmldir/install-ocaml-compiler.sh)
+     (copy %{fvb}     dkmldir/cache-vsstudio.bat)
+     (copy %{fvp}     dkmldir/cache-vsstudio.ps1)))
    (run
     %{bin:ocaml-crunch}
     "--mode=plain"
     "--output=%{target}"
-    "--ext=sh"
-    "--ext=dkmlroot"
     "dkmldir"))))

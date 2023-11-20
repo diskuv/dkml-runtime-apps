@@ -118,56 +118,115 @@ let create_ocaml_home_with_compiler ~system_cfg ~enable_imprecise_c99_float_ops
   | Ok i -> Ok (Signalled i)
   | Error e -> Error e
 
+let critical_vsstudio_files =
+  Fpath.
+    [
+      (* Used by [autodetect_vsdev()] in crossplatform-functions.sh *)
+      v "Common7" / "Tools" / "VsDevCmd.bat";
+    ]
+
+let validate_cached_vsstudio () =
+  let* dkml_home_fp = Lazy.force Dkml_context.get_dkmlparenthomedir in
+  let txt_fp = Fpath.(dkml_home_fp / "vsstudio.dir.txt") in
+  let* txt_exists = OS.File.exists txt_fp in
+  if txt_exists then
+    let* txt_contents = OS.File.read txt_fp in
+    let txt_contents = String.trim txt_contents in
+    let* vsstudio_dir_fp = Fpath.of_string txt_contents in
+    let* all_critical_files_exist =
+      List.fold_right
+        (fun critical_fp -> function
+          | Error e -> Error e
+          | Ok false -> Ok false
+          | Ok true -> OS.File.exists Fpath.(vsstudio_dir_fp // critical_fp))
+        critical_vsstudio_files (Ok true)
+    in
+    Ok all_critical_files_exist
+  else Ok false
+
+let create_cached_vsstudio ~system_cfg =
+  (* Assemble command line arguments *)
+  let open Opam_context.SystemConfig in
+  let* rel_fp = Fpath.of_string "cache-vsstudio.bat" in
+  let cache_vsstudio_fp = Fpath.(system_cfg.scripts_dir_fp // rel_fp) in
+  let cmd =
+    Cmd.of_list
+      (system_cfg.env_exe_wrapper
+      @ [
+          Fpath.to_string cache_vsstudio_fp;
+          "-DkmlPath";
+          Fpath.to_string system_cfg.scripts_dir_fp;
+        ])
+  in
+  (* Run the command *)
+  run_command cmd rel_fp
+
 let init_system ?enable_imprecise_c99_float_ops ~f_temp_dir ~f_system_cfg () =
   let* temp_dir = f_temp_dir () in
   let* (_created : bool) = OS.Dir.create temp_dir in
-  (* Create OCaml system compiler if necessary *)
-  let* ocaml_home_fp_opt = Opam_context.SystemConfig.find_ocaml_home () in
   let system_cfg = lazy (f_system_cfg ()) in
-  let* ocaml_home_status =
-    match ocaml_home_fp_opt with
-    | Some ocaml_home_fp -> Ok (Ocaml_home ocaml_home_fp)
-    | None ->
+  (* [Windows-only] Cache Visual Studio location inside DkML home if necessary *)
+  let* ec =
+    if Sys.win32 then
+      let* validated = validate_cached_vsstudio () in
+      if validated then Ok 0
+      else (
         Logs.warn (fun l ->
             l
-              "Detected that the system OCaml compiler is not present. \
-               Creating it now. ETA: 15 minutes.");
+              "Detected that a Visual Studio compatible with DkML has not been \
+               located. Locating it now. ETA: 1 minute.");
         let* system_cfg = Lazy.force system_cfg in
-        create_ocaml_home_with_compiler ~system_cfg
-          ~enable_imprecise_c99_float_ops:
-            (Option.is_some enable_imprecise_c99_float_ops)
+        create_cached_vsstudio ~system_cfg)
+    else Ok 0
   in
-  match ocaml_home_status with
-  | Signalled ec -> Ok ec (* short-circuit exit if signal raised *)
-  | Ocaml_home ocaml_home_fp ->
-      (* Create opam root if necessary *)
-      let* opamroot_dir_fp = Lazy.force Opam_context.get_opam_root in
-      let* opamroot_exists =
-        OS.File.exists Fpath.(opamroot_dir_fp / "config")
-      in
-      let* ec =
-        if opamroot_exists then Ok 0
-        else (
+  if ec <> 0 then Ok ec (* short-circuit exit if signal raised *)
+  else
+    (* Create OCaml system compiler if necessary *)
+    let* ocaml_home_fp_opt = Opam_context.SystemConfig.find_ocaml_home () in
+    let* ocaml_home_status =
+      match ocaml_home_fp_opt with
+      | Some ocaml_home_fp -> Ok (Ocaml_home ocaml_home_fp)
+      | None ->
           Logs.warn (fun l ->
               l
-                "Detected that the \"opam root\" package cache is not present. \
-                 Creating it now. ETA: 10 minutes.");
+                "Detected that the system OCaml compiler is not present. \
+                 Creating it now. ETA: 15 minutes.");
           let* system_cfg = Lazy.force system_cfg in
-          create_opam_root ~opamroot_dir_fp ~ocaml_home_fp ~system_cfg)
-      in
-      if ec <> 0 then Ok ec (* short-circuit exit if signal raised *)
-      else
-        (* Create playground switch if necessary *)
-        let* playground_exists =
-          OS.File.exists
-            Fpath.(
-              opamroot_dir_fp / "playground" / ".opam-switch" / "switch-state")
+          create_ocaml_home_with_compiler ~system_cfg
+            ~enable_imprecise_c99_float_ops:
+              (Option.is_some enable_imprecise_c99_float_ops)
+    in
+    match ocaml_home_status with
+    | Signalled ec -> Ok ec (* short-circuit exit if signal raised *)
+    | Ocaml_home ocaml_home_fp ->
+        (* Create opam root if necessary *)
+        let* opamroot_dir_fp = Lazy.force Opam_context.get_opam_root in
+        let* opamroot_exists =
+          OS.File.exists Fpath.(opamroot_dir_fp / "config")
         in
-        if playground_exists then Ok 0
-        else (
-          Logs.warn (fun l ->
-              l
-                "Detected the global [playground] switch is not present. \
-                 Creating it now. ETA: 5 minutes.");
-          let* system_cfg = Lazy.force system_cfg in
-          create_playground_switch ~opamroot_dir_fp ~ocaml_home_fp ~system_cfg)
+        let* ec =
+          if opamroot_exists then Ok 0
+          else (
+            Logs.warn (fun l ->
+                l
+                  "Detected that the \"opam root\" package cache is not \
+                   present. Creating it now. ETA: 10 minutes.");
+            let* system_cfg = Lazy.force system_cfg in
+            create_opam_root ~opamroot_dir_fp ~ocaml_home_fp ~system_cfg)
+        in
+        if ec <> 0 then Ok ec (* short-circuit exit if signal raised *)
+        else
+          (* Create playground switch if necessary *)
+          let* playground_exists =
+            OS.File.exists
+              Fpath.(
+                opamroot_dir_fp / "playground" / ".opam-switch" / "switch-state")
+          in
+          if playground_exists then Ok 0
+          else (
+            Logs.warn (fun l ->
+                l
+                  "Detected the global [playground] switch is not present. \
+                   Creating it now. ETA: 5 minutes.");
+            let* system_cfg = Lazy.force system_cfg in
+            create_playground_switch ~opamroot_dir_fp ~ocaml_home_fp ~system_cfg)
