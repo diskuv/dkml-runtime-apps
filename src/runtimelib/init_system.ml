@@ -161,6 +161,36 @@ let create_cached_vsstudio ~system_cfg =
   (* Run the command *)
   run_command cmd rel_fp
 
+let validate_git ~msg_why_check_git ~what_install =
+  let* git_exe_opt = OS.Cmd.find_tool Cmd.(v "git") in
+  if Option.is_none git_exe_opt then (
+    let* has_winget =
+      if Sys.win32 then
+        let* winget_opt = OS.Cmd.find_tool Cmd.(v "winget") in
+        Ok (Option.is_some winget_opt)
+      else Ok false
+    in
+    Logs.warn (fun l ->
+        l
+          "%s Ordinarily this program would automatically install the %s. \
+           However, the Git source control system is required for automatic \
+           installation.\n\n\
+           SOLUTION:\n\
+           1. %s\n\
+           2. Re-run this program in a _new_ terminal." msg_why_check_git
+          what_install
+          (match (Sys.win32, has_winget) with
+          | true, true ->
+              "Run 'winget install Git.Git' to install Git for Windows."
+          | true, false ->
+              "Download and install Git for Windows from \
+               https://gitforwindows.org/."
+          | false, _ ->
+              "Use your package manager (ex. 'apt install git' or 'yum install \
+               git') to install it."));
+    Ok ())
+  else Ok ()
+
 let init_system ?enable_imprecise_c99_float_ops ~f_temp_dir ~f_system_cfg () =
   let* temp_dir = f_temp_dir () in
   let* (_created : bool) = OS.Dir.create temp_dir in
@@ -187,10 +217,14 @@ let init_system ?enable_imprecise_c99_float_ops ~f_temp_dir ~f_system_cfg () =
       match ocaml_home_fp_opt with
       | Some ocaml_home_fp -> Ok (Ocaml_home ocaml_home_fp)
       | None ->
-          Logs.warn (fun l ->
-              l
-                "Detected that the system OCaml compiler is not present. \
-                 Creating it now. ETA: 15 minutes.");
+          let msg_why =
+            "Detected that the system OCaml compiler is not present."
+          in
+          let* () =
+            validate_git ~msg_why_check_git:msg_why
+              ~what_install:"system OCaml compiler"
+          in
+          Logs.warn (fun l -> l "%s Creating it now. ETA: 15 minutes." msg_why);
           let* system_cfg = Lazy.force system_cfg in
           create_ocaml_home_with_compiler ~system_cfg
             ~enable_imprecise_c99_float_ops:
@@ -206,13 +240,18 @@ let init_system ?enable_imprecise_c99_float_ops ~f_temp_dir ~f_system_cfg () =
         in
         let* ec =
           if opamroot_exists then Ok 0
-          else (
+          else
+            let msg_why =
+              "Detected that the \"opam root\" package cache is not present."
+            in
+            let* () =
+              validate_git ~msg_why_check_git:msg_why
+                ~what_install:"\"opam root\" package cache"
+            in
             Logs.warn (fun l ->
-                l
-                  "Detected that the \"opam root\" package cache is not \
-                   present. Creating it now. ETA: 10 minutes.");
+                l "%s. Creating it now. ETA: 10 minutes." msg_why);
             let* system_cfg = Lazy.force system_cfg in
-            create_opam_root ~opamroot_dir_fp ~ocaml_home_fp ~system_cfg)
+            create_opam_root ~opamroot_dir_fp ~ocaml_home_fp ~system_cfg
         in
         if ec <> 0 then Ok ec (* short-circuit exit if signal raised *)
         else
