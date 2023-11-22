@@ -6,6 +6,7 @@ if(NOT DKML_BUMP_VERSION_PARTICIPANT_MODULE)
 endif()
 include(${DKML_BUMP_VERSION_PARTICIPANT_MODULE})
 
+DkMLBumpVersionParticipant_PlainReplace(src/dkml-exe/version.txt)
 DkMLBumpVersionParticipant_OpamReplace(dkml-apps.opam)
 DkMLBumpVersionParticipant_OpamReplace(dkml-exe-lib.opam)
 DkMLBumpVersionParticipant_OpamReplace(dkml-exe.opam)
