@@ -20,7 +20,24 @@ let extract_dkml_scripts ~dkmlversion dir_fp =
                   filename
                   (Option.is_some script_opt));
             Option.fold ~none:(Result.Ok ())
-              ~some:(fun script -> OS.File.write ~mode:0x755 target_fp script)
+              ~some:(fun script ->
+                let* () =
+                  (* [doc from diskuvbox]
+                     [tracks https://github.com/dbuenzli/bos/issues/98]
+                     For Windows, can't write without turning off read-only flag.
+                     In fact, you can still get Permission Denied even after turning
+                     off read-only flag, perhaps because Windows has a richer
+                     permissions model than POSIX. So we remove the file
+                     after turning off read-only *)
+                  if Sys.win32 then
+                    let* exists = OS.File.exists target_fp in
+                    if exists then
+                      let* () = OS.Path.Mode.set target_fp 0o644 in
+                      OS.File.delete target_fp
+                    else Ok ()
+                  else Ok ()
+                in
+                OS.File.write ~mode:0x755 target_fp script)
               script_opt
         | Error _ as err -> err)
       (Result.Ok ()) file_list
