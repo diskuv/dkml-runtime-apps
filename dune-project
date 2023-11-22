@@ -14,7 +14,7 @@
 
 (package
  (name dkml-runtimelib)
- (synopsis "Runtime library used by CLI applications and Opam plugins in a Diskuv OCaml installation")
+ (synopsis "Runtime library used by CLI applications and Opam plugins in a DkML installation")
  (depends
   (ocaml        (>= 4.12.1))
   (bos          (>= 0.2.1))
@@ -23,7 +23,7 @@
 
 (package
  (name dkml-runtimescripts)
- (synopsis "Runtime scripts used by CLI applications and Opam plugins in a Diskuv OCaml installation")
+ (synopsis "Runtime scripts used by CLI applications and Opam plugins in a DkML installation")
  (depends
   (ocaml        (>= 4.12.1))
   (bos          (>= 0.2.1))
@@ -50,7 +50,7 @@
 
 (package
  (name dkml-apps)
- (synopsis "CLI applications available in Diskuv OCaml installations")
+ (synopsis "CLI applications available in DkML installations")
  (description "'dkml-fswatch' is a Windows port of fswatch suitable for 'dune --watch'.")
  (depends
   (ocaml              (>= 4.12.1))
@@ -59,7 +59,7 @@
 
 (package
  (name dkml-exe-lib)
- (synopsis "Library containing all the code for the 'dkml' (Diskuv OCaml) executable")
+ (synopsis "Library containing all the code for the 'dkml' executable")
  (description "'dkml init' creates a local Windows-friendly Opam switch configured with DKML Opam repositories and options")
  (depends
   (ocaml                (>= 4.12.1))
@@ -71,14 +71,14 @@
 
 (package
  (name dkml-exe)
- (synopsis "'dkml' (Diskuv OCaml) executable")
+ (synopsis "'dkml' executable")
  (description "'dkml init' creates a local Windows-friendly Opam switch configured with DKML Opam repositories and options")
  (depends
   (dkml-exe-lib         (= :version))))
 
 (package
  (name opam-dkml)
- (synopsis "Opam plugin for Diskuv OCaml (DKML). Deprecated; use 'dkml' executable instead")
+ (synopsis "Opam plugin for DkML. Deprecated; use 'dkml' executable instead")
  (description "An opam plugin where 'opam dkml init' creates a local Windows-friendly Opam switch configured with DKML Opam repositories and options")
  (depends
   (dkml-exe-lib         (= :version))))

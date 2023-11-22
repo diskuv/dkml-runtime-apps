@@ -18,7 +18,7 @@ let includes_ref = ref []
    to be missed, which renders dune --watch useless on Windows (TODO: we haven't filed an issue yet).
 
    For now, we add in the same directories that Dune 2.9.0 does (just Windows-ized), and we also add in a few paths
-   that are specific to Diskuv OCaml.
+   that are specific to DkML.
 *)
 let exclude_auto_added =
   [
@@ -28,7 +28,7 @@ let exclude_auto_added =
     {|\\_esy|};
     {|\\_opam|};
     {|\\_build|};
-    (* paths specific to Diskuv OCaml distribution, or paths we simply want to add *)
+    (* paths specific to DkML distribution, or paths we simply want to add *)
     {|\\\.git|};
     {|\\_tmp|};
   ]

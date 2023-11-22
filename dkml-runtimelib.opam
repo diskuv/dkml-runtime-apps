@@ -2,7 +2,7 @@
 opam-version: "2.0"
 version: "2.1.0"
 synopsis:
-  "Runtime library used by CLI applications and Opam plugins in a Diskuv OCaml installation"
+  "Runtime library used by CLI applications and Opam plugins in a DkML installation"
 maintainer: ["opensource+diskuv-ocaml@support.diskuv.com"]
 authors: ["Diskuv, Inc. <opensource+diskuv-ocaml@support.diskuv.com>"]
 license: "Apache-2.0"

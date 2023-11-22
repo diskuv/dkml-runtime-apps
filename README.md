@@ -4,7 +4,7 @@ This repository is meant for DKML contributors.
 
 ## Building
 
-> You can do with following commands in Windows Diskuv OCaml
+> You can do with following commands in Windows DkML
 > preceding with `with-dkml bash`:
 
 ```sh

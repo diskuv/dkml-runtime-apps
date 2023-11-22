@@ -19,7 +19,7 @@
  (name with_dkml)
  (public_name with-dkml)
  ; No PPX! This should compile with the bare minimum:
- ; 1. This is installed in the Diskuv OCaml system `dkml` switch; it should be lightweight
+ ; 1. This is installed directly in the end-user system; it should be lightweight
  ;    so less security surface area and less support burden
  ; 2. Since this can be compiled using Dune's `ocaml bootstrap.ml`, we need
  ;    to list _all_ transitive dependencies (at least for Dune 2.9.3)
