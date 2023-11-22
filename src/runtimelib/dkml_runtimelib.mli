@@ -7,6 +7,7 @@ module Monadic_operators : sig
 end
 
 val int_parser : int Bos.OS.Env.parser
+val get_vsstudio_dir_opt : (Fpath.t option, Rresult.R.msg) result lazy_t
 val get_msys2_dir_opt : (Fpath.t option, Rresult.R.msg) result lazy_t
 val get_dkmlhome_dir_opt : (Fpath.t option, Rresult.R.msg) result lazy_t
 val get_dkmlversion : (string, Rresult.R.msg) result lazy_t

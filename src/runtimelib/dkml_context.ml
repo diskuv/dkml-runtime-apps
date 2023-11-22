@@ -29,6 +29,23 @@ let get_dkmlparenthomedir =
                  Fpath.(fp / ".local" / "share" / "dkml")
              | Error _ as err -> err)))
 
+(** [get_vsstudio_dir_opt] gets the DkML configured Visual Studio
+    installation directory. [dkml init --system] is one place where
+    Visual Studio is located and cached; in general the responsibility
+    is performed by cache-vsstudio.ps1. *)
+let get_vsstudio_dir_opt =
+  Lazy.from_fun (fun () ->
+      let ( let* ) = Result.bind in
+      let* dkml_home_fp = Lazy.force get_dkmlparenthomedir in
+      let txt_fp = Fpath.(dkml_home_fp / "vsstudio.dir.txt") in
+      let* txt_exists = OS.File.exists txt_fp in
+      if txt_exists then
+        let* txt_contents = OS.File.read txt_fp in
+        let txt_contents = String.trim txt_contents in
+        let* vsstudio_dir_fp = Fpath.of_string txt_contents in
+        Ok (Some vsstudio_dir_fp)
+      else Ok None)
+
 (** [get_dkmlenv_opt] creates an association list in the format of
     dkmlvars-v2.sexp from the environment if DiskuvOCamlVarsVersion and
     DiskuvOCamlVersion are defined. These two environment variables are all

@@ -217,9 +217,22 @@ let set_tempvar_entries cache_keys =
    System opam switch) is used instead.
 *)
 let set_msvc_entries cache_keys =
-  OS.Env.req_var "PATH" >>= fun path ->
+  let ( let* ) = Result.bind in
+  (* The cache keys will be:
+
+     - DkML home
+     - Visual Studio installation directory
+     - the PATH on entry to this function (minus any MSVC entries)
+  *)
+  let* path = OS.Env.req_var "PATH" in
   let dkmlhome = OS.Env.opt_var "DiskuvOCamlHome" ~absent:"" in
-  let cache_keys = path :: dkmlhome :: cache_keys in
+  let* vsstudio_dir_opt = Lazy.force Dkml_runtimelib.get_vsstudio_dir_opt in
+  let vsstudio_dir_key =
+    match vsstudio_dir_opt with
+    | Some vsstudio_dir -> Fpath.to_string vsstudio_dir
+    | None -> ""
+  in
+  let cache_keys = path :: vsstudio_dir_key :: dkmlhome :: cache_keys in
   (* 1. Remove MSVC entries *)
   remove_microsoft_visual_studio_entries () >>= fun () ->
   (* 2. Add MSVC entries *)
@@ -247,17 +260,8 @@ let set_msvc_entries cache_keys =
       Lazy.force get_opam_switch_prefix >>= fun opam_switch_prefix ->
       let cache_dir = Fpath.(opam_switch_prefix / ".dkml" / "compiler-cache") in
       let cache_key =
-        (* The cache keys may be:
-
-           - deployment id (basically the version of DKML)
-
-           to which we add:
-
-           - the PATH on entry to this function (minus any MSVC entries)
-        *)
         let ctx = Sha256.init () in
         List.iter (fun key -> Sha256.update_string ctx key) cache_keys;
-        Sha256.update_string ctx path;
         Sha256.(finalize ctx |> to_hex)
       in
       let cache_file = Fpath.(cache_dir / (cache_key ^ ".sexp")) in

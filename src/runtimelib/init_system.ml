@@ -126,23 +126,19 @@ let critical_vsstudio_files =
     ]
 
 let validate_cached_vsstudio () =
-  let* dkml_home_fp = Lazy.force Dkml_context.get_dkmlparenthomedir in
-  let txt_fp = Fpath.(dkml_home_fp / "vsstudio.dir.txt") in
-  let* txt_exists = OS.File.exists txt_fp in
-  if txt_exists then
-    let* txt_contents = OS.File.read txt_fp in
-    let txt_contents = String.trim txt_contents in
-    let* vsstudio_dir_fp = Fpath.of_string txt_contents in
-    let* all_critical_files_exist =
-      List.fold_right
-        (fun critical_fp -> function
-          | Error e -> Error e
-          | Ok false -> Ok false
-          | Ok true -> OS.File.exists Fpath.(vsstudio_dir_fp // critical_fp))
-        critical_vsstudio_files (Ok true)
-    in
-    Ok all_critical_files_exist
-  else Ok false
+  let* vsstudio_dir_fp_opt = Lazy.force Dkml_context.get_vsstudio_dir_opt in
+  match vsstudio_dir_fp_opt with
+  | Some vsstudio_dir_fp ->
+      let* all_critical_files_exist =
+        List.fold_right
+          (fun critical_fp -> function
+            | Error e -> Error e
+            | Ok false -> Ok false
+            | Ok true -> OS.File.exists Fpath.(vsstudio_dir_fp // critical_fp))
+          critical_vsstudio_files (Ok true)
+      in
+      Ok all_critical_files_exist
+  | None -> Ok false
 
 let create_cached_vsstudio ~system_cfg =
   (* Assemble command line arguments *)
