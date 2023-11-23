@@ -111,7 +111,7 @@ let run f_setup localdir_fp_opt yes non_system_compiler system_only
     if enable_imprecise_c99_float_ops then Some () else None
   in
   f_setup () >>= fun () ->
-  OS.Dir.with_tmp "dkml-initsystem-1%s"
+  OS.Dir.with_tmp "dkml-initsystem-de-%s" (* de = dkml-exe *)
     (fun dir_fp () ->
       (* Find installed dkmlversion.
 
@@ -126,7 +126,8 @@ let run f_setup localdir_fp_opt yes non_system_compiler system_only
 
          2023-11-18: There is no more fdopen-mingw local versioned opam
          repository, so this dkmlversion may be superfluous now. *)
-      Lazy.force Dkml_runtimelib.get_dkmlversion_or_default >>= fun dkmlversion ->
+      Lazy.force Dkml_runtimelib.get_dkmlversion_or_default
+      >>= fun dkmlversion ->
       (* Extract all DkML scripts into scripts_dir_fp using installed dkmlversion. *)
       let scripts_dir_fp = Fpath.(dir_fp // v "scripts") in
       Dkml_runtimescripts.extract_dkml_scripts ~dkmlversion scripts_dir_fp
@@ -140,7 +141,7 @@ let run f_setup localdir_fp_opt yes non_system_compiler system_only
       Dkml_runtimelib.SystemConfig.create ~scripts_dir_fp ()
       >>= fun system_cfg ->
       (* Initialize system if necessary *)
-      let f_temp_dir () = Ok Fpath.(dir_fp // v "init-system") in
+      let f_temp_dir () = Ok Fpath.(dir_fp // v "is") in
       let f_system_cfg ~temp_dir () =
         ignore temp_dir;
         Ok system_cfg

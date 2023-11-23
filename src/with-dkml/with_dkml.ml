@@ -596,7 +596,7 @@ let main_with_result () =
            because it can be erased if [opam = with-dkml] and [opam remove <current switch>].
            Which is precisely what happens during [create-opam-switch.sh] during
            the [playground] switch creation. *)
-        OS.Dir.tmp "dkml-initsystem-2%s"
+        OS.Dir.tmp "dkml-initsystem-wd-%s" (* wd = with-dkml *)
       in
       let f_system_cfg ~temp_dir () =
         (* Extract all DkML scripts into scripts_dir_fp using installed dkmlversion. *)

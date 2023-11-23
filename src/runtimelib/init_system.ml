@@ -72,7 +72,9 @@ let create_opam_root ~opamroot_dir_fp ~ocaml_home_fp ~system_cfg =
   (* Run the command *)
   run_command cmd rel_fp
 
-type ocaml_home_status = Ocaml_home of Fpath.t | Signalled of int
+type ocamlhome_status =
+  | Ocamlhome_valid of Fpath.t
+  | Ocamlhome_interrupted of int
 
 let create_ocaml_home_with_compiler ~system_cfg ~enable_imprecise_c99_float_ops
     =
@@ -114,8 +116,8 @@ let create_ocaml_home_with_compiler ~system_cfg ~enable_imprecise_c99_float_ops
   in
   (* Run the command *)
   match run_command cmd rel_fp with
-  | Ok 0 -> Ok (Ocaml_home dkml_home_fp)
-  | Ok i -> Ok (Signalled i)
+  | Ok 0 -> Ok (Ocamlhome_valid dkml_home_fp)
+  | Ok i -> Ok (Ocamlhome_interrupted i)
   | Error e -> Error e
 
 let critical_vsstudio_files =
@@ -125,7 +127,36 @@ let critical_vsstudio_files =
       v "Common7" / "Tools" / "VsDevCmd.bat";
     ]
 
-let validate_cached_vsstudio () =
+type opamroot_status =
+  | Opamroot_missing
+  | Opamroot_no_repository
+  | Opamroot_complete
+
+let get_opamroot_status () =
+  let* opamroot_dir_fp = Lazy.force Opam_context.get_opam_root in
+  let* opamroot_exists = OS.File.exists Fpath.(opamroot_dir_fp / "config") in
+  if opamroot_exists then
+    let* dkml_version = Lazy.force Dkml_context.get_dkmlversion_or_default in
+    (* COMPLETE: The diskuv-<VERSION> repository must exist *)
+    let* diskuv_repo =
+      OS.Dir.exists
+        Fpath.(
+          opamroot_dir_fp / "repo" / Printf.sprintf "diskuv-%s" dkml_version)
+    in
+    let* diskuv_repo_targz =
+      OS.File.exists
+        Fpath.(
+          opamroot_dir_fp / "repo"
+          / Printf.sprintf "diskuv-%s.tar.gz" dkml_version)
+    in
+    let state =
+      if diskuv_repo || diskuv_repo_targz then Opamroot_complete
+      else Opamroot_no_repository
+    in
+    Ok state
+  else Ok Opamroot_missing
+
+let is_valid_cached_vsstudio () =
   let* vsstudio_dir_fp_opt = Lazy.force Dkml_context.get_vsstudio_dir_opt in
   match vsstudio_dir_fp_opt with
   | Some vsstudio_dir_fp ->
@@ -157,43 +188,55 @@ let create_cached_vsstudio ~system_cfg =
   (* Run the command *)
   run_command cmd rel_fp
 
-let validate_git ~msg_why_check_git ~what_install =
+let verify_git ~msg_why_check_git ~what_install =
   let* git_exe_opt = OS.Cmd.find_tool Cmd.(v "git") in
-  if Option.is_none git_exe_opt then (
+  if Option.is_none git_exe_opt then
     let* has_winget =
       if Sys.win32 then
         let* winget_opt = OS.Cmd.find_tool Cmd.(v "winget") in
         Ok (Option.is_some winget_opt)
       else Ok false
     in
-    Logs.warn (fun l ->
-        l
-          "%s Ordinarily this program would automatically install the %s. \
-           However, the Git source control system is required for automatic \
-           installation.\n\n\
-           SOLUTION:\n\
-           1. %s\n\
-           2. Re-run this program in a _new_ terminal." msg_why_check_git
-          what_install
-          (match (Sys.win32, has_winget) with
-          | true, true ->
-              "Run 'winget install Git.Git' to install Git for Windows."
-          | true, false ->
-              "Download and install Git for Windows from \
-               https://gitforwindows.org/."
-          | false, _ ->
-              "Use your package manager (ex. 'apt install git' or 'yum install \
-               git') to install it."));
-    Ok ())
+    Rresult.R.error_msgf
+      "%s Ordinarily this program would automatically install the %s. However, \
+       the Git source control system is required for automatic installation.\n\n\
+       SOLUTION:\n\
+       1. %s\n\
+       2. Re-run this program in a _new_ terminal." msg_why_check_git
+      what_install
+      (match (Sys.win32, has_winget) with
+      | true, true -> "Run 'winget install Git.Git' to install Git for Windows."
+      | true, false ->
+          "Download and install Git for Windows from \
+           https://gitforwindows.org/."
+      | false, _ ->
+          "Use your package manager (ex. 'apt install git' or 'yum install \
+           git') to install it.")
   else Ok ()
 
 let init_system_helper ?enable_imprecise_c99_float_ops ~f_system_cfg ~temp_dir
     () =
+  (*
+
+     DEVELOPER NOTE:
+
+       __ALL__ checks must be fast if the system has already been initialized!
+       We cannot have the [with-dkml] facade (soon to be "dkml facade") be a
+       bottleneck for the underlying executable (opam-real, dune-real, etc.).
+
+       You can:
+
+       - read tiny files or check the presence of files or directory
+
+       Do not:
+
+       - spawn processes
+  *)
   let system_cfg = lazy (f_system_cfg ~temp_dir ()) in
   (* [Windows-only] Cache Visual Studio location inside DkML home if necessary *)
   let* ec =
     if Sys.win32 then
-      let* validated = validate_cached_vsstudio () in
+      let* validated = is_valid_cached_vsstudio () in
       if validated then Ok 0
       else (
         Logs.warn (fun l ->
@@ -210,13 +253,13 @@ let init_system_helper ?enable_imprecise_c99_float_ops ~f_system_cfg ~temp_dir
     let* ocaml_home_fp_opt = Opam_context.SystemConfig.find_ocaml_home () in
     let* ocaml_home_status =
       match ocaml_home_fp_opt with
-      | Some ocaml_home_fp -> Ok (Ocaml_home ocaml_home_fp)
+      | Some ocaml_home_fp -> Ok (Ocamlhome_valid ocaml_home_fp)
       | None ->
           let msg_why =
             "Detected that the system OCaml compiler is not present."
           in
           let* () =
-            validate_git ~msg_why_check_git:msg_why
+            verify_git ~msg_why_check_git:msg_why
               ~what_install:"system OCaml compiler"
           in
           Logs.warn (fun l -> l "%s Creating it now. ETA: 15 minutes." msg_why);
@@ -226,27 +269,35 @@ let init_system_helper ?enable_imprecise_c99_float_ops ~f_system_cfg ~temp_dir
               (Option.is_some enable_imprecise_c99_float_ops)
     in
     match ocaml_home_status with
-    | Signalled ec -> Ok ec (* short-circuit exit if signal raised *)
-    | Ocaml_home ocaml_home_fp ->
+    | Ocamlhome_interrupted ec ->
+        Ok ec (* short-circuit exit if signal raised *)
+    | Ocamlhome_valid ocaml_home_fp ->
         (* Create opam root if necessary *)
         let* opamroot_dir_fp = Lazy.force Opam_context.get_opam_root in
-        let* opamroot_exists =
-          OS.File.exists Fpath.(opamroot_dir_fp / "config")
-        in
+        let* opamroot_status = get_opamroot_status () in
         let* ec =
-          if opamroot_exists then Ok 0
-          else
-            let msg_why =
-              "Detected that the \"opam root\" package cache is not present."
-            in
-            let* () =
-              validate_git ~msg_why_check_git:msg_why
-                ~what_install:"\"opam root\" package cache"
-            in
-            Logs.warn (fun l ->
-                l "%s. Creating it now. ETA: 10 minutes." msg_why);
-            let* system_cfg = Lazy.force system_cfg in
-            create_opam_root ~opamroot_dir_fp ~ocaml_home_fp ~system_cfg
+          let what_install = "\"opam root\" package cache" in
+          match opamroot_status with
+          | Opamroot_complete -> Ok 0
+          | Opamroot_missing ->
+              let msg_why =
+                "Detected that the \"opam root\" package cache is not present."
+              in
+              let* () = verify_git ~msg_why_check_git:msg_why ~what_install in
+              Logs.warn (fun l ->
+                  l "%s Creating it now. ETA: 10 minutes." msg_why);
+              let* system_cfg = Lazy.force system_cfg in
+              create_opam_root ~opamroot_dir_fp ~ocaml_home_fp ~system_cfg
+          | Opamroot_no_repository ->
+              let msg_why =
+                "Detected that the \"opam root\" package cache is missing the \
+                 DkML repository."
+              in
+              let* () = verify_git ~msg_why_check_git:msg_why ~what_install in
+              Logs.warn (fun l ->
+                  l "%s Creating it now. ETA: 10 minutes." msg_why);
+              let* system_cfg = Lazy.force system_cfg in
+              create_opam_root ~opamroot_dir_fp ~ocaml_home_fp ~system_cfg
         in
         if ec <> 0 then Ok ec (* short-circuit exit if signal raised *)
         else
@@ -268,11 +319,28 @@ let init_system_helper ?enable_imprecise_c99_float_ops ~f_system_cfg ~temp_dir
 let init_system ?enable_imprecise_c99_float_ops ?delete_temp_dir_after_init
     ~f_temp_dir ~f_system_cfg () =
   let* temp_dir = f_temp_dir () in
-  Fun.protect
-    ~finally:(fun () ->
-      if Option.is_some delete_temp_dir_after_init then
-        OS.File.delete temp_dir |> Result.get_ok)
-    (fun () ->
-      let* (_created : bool) = OS.Dir.create temp_dir in
-      init_system_helper ?enable_imprecise_c99_float_ops ~f_system_cfg ~temp_dir
-        ())
+  let delayed_error = ref (Ok 0) in
+  let* ec =
+    Fun.protect
+      ~finally:(fun () ->
+        if Option.is_some delete_temp_dir_after_init then
+          match OS.Dir.delete temp_dir with
+          | Ok () -> ()
+          | Error (`Msg msg) -> (
+              match !delayed_error with
+              | Ok _ ->
+                  delayed_error :=
+                    Error
+                      (`Msg
+                        ("Deleting the temporary directory after the auto init \
+                          of the DkML system failed: " ^ msg))
+              | Error _ ->
+                  Logs.warn (fun l ->
+                      l "Deleting the temporary directory %a failed: %s"
+                        Fpath.pp temp_dir msg)))
+      (fun () ->
+        let* (_created : bool) = OS.Dir.create temp_dir in
+        init_system_helper ?enable_imprecise_c99_float_ops ~f_system_cfg
+          ~temp_dir ())
+  in
+  match !delayed_error with Ok _ -> Ok ec | Error e -> Error e
