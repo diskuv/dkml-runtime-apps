@@ -187,10 +187,9 @@ let validate_git ~msg_why_check_git ~what_install =
     Ok ())
   else Ok ()
 
-let init_system ?enable_imprecise_c99_float_ops ~f_temp_dir ~f_system_cfg () =
-  let* temp_dir = f_temp_dir () in
-  let* (_created : bool) = OS.Dir.create temp_dir in
-  let system_cfg = lazy (f_system_cfg ()) in
+let init_system_helper ?enable_imprecise_c99_float_ops ~f_system_cfg ~temp_dir
+    () =
+  let system_cfg = lazy (f_system_cfg ~temp_dir ()) in
   (* [Windows-only] Cache Visual Studio location inside DkML home if necessary *)
   let* ec =
     if Sys.win32 then
@@ -265,3 +264,15 @@ let init_system ?enable_imprecise_c99_float_ops ~f_temp_dir ~f_system_cfg () =
                    Creating it now. ETA: 5 minutes.");
             let* system_cfg = Lazy.force system_cfg in
             create_playground_switch ~opamroot_dir_fp ~ocaml_home_fp ~system_cfg)
+
+let init_system ?enable_imprecise_c99_float_ops ?delete_temp_dir_after_init
+    ~f_temp_dir ~f_system_cfg () =
+  let* temp_dir = f_temp_dir () in
+  Fun.protect
+    ~finally:(fun () ->
+      if Option.is_some delete_temp_dir_after_init then
+        OS.File.delete temp_dir |> Result.get_ok)
+    (fun () ->
+      let* (_created : bool) = OS.Dir.create temp_dir in
+      init_system_helper ?enable_imprecise_c99_float_ops ~f_system_cfg ~temp_dir
+        ())

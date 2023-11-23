@@ -111,7 +111,7 @@ let run f_setup localdir_fp_opt yes non_system_compiler system_only
     if enable_imprecise_c99_float_ops then Some () else None
   in
   f_setup () >>= fun () ->
-  OS.Dir.with_tmp "dkml-scripts-%s"
+  OS.Dir.with_tmp "dkml-initsystem-1%s"
     (fun dir_fp () ->
       (* Find installed dkmlversion.
 
@@ -141,7 +141,10 @@ let run f_setup localdir_fp_opt yes non_system_compiler system_only
       >>= fun system_cfg ->
       (* Initialize system if necessary *)
       let f_temp_dir () = Ok Fpath.(dir_fp // v "init-system") in
-      let f_system_cfg () = Ok system_cfg in
+      let f_system_cfg ~temp_dir () =
+        ignore temp_dir;
+        Ok system_cfg
+      in
       Dkml_runtimelib.init_system ?enable_imprecise_c99_float_ops ~f_temp_dir
         ~f_system_cfg ()
       >>= fun ec ->

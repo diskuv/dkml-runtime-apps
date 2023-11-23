@@ -26,8 +26,10 @@ val get_msys2_create_opam_switch_options : SystemConfig.msys2_t -> string list
 
 val init_system :
   ?enable_imprecise_c99_float_ops:unit ->
+  ?delete_temp_dir_after_init:unit ->
   f_temp_dir:(unit -> (Fpath.t, Rresult.R.msg) result) ->
-  f_system_cfg:(unit -> (SystemConfig.t, Rresult.R.msg) result) ->
+  f_system_cfg:
+    (temp_dir:Fpath.t -> unit -> (SystemConfig.t, Rresult.R.msg) result) ->
   unit ->
   (int, Rresult.R.msg) result
 (** [init_system ?enable_imprecise_c99_float_ops ~f_temp_dir ~f_system_cfg ()] initializes the system OCaml compiler, the opam root and the
@@ -36,7 +38,7 @@ val init_system :
     The [f_temp_dir ()] function will be called to designate a temporary directory if the system is not
     initialized. The temporary directory and all of its parent directories will be created if needed.
 
-    The [f_system_cfg ()] function will be called to collect the prereqs for creating a switch
+    The [f_system_cfg ~temp_dir ()] function will be called to collect the prereqs for creating a switch
     if the system is not initialized.
 
     If the system is already initialized, none of the possibly time-consuming functions are called.
