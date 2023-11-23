@@ -599,7 +599,7 @@ let main_with_result () =
         OS.Dir.tmp "dkml-initsystem-2%s"
       in
       let f_system_cfg ~temp_dir () =
-        (* Extract all DKML scripts into scripts_dir_fp using installed dkmlversion. *)
+        (* Extract all DkML scripts into scripts_dir_fp using installed dkmlversion. *)
         let scripts_dir_fp = Fpath.(temp_dir // v "scripts") in
         let* () =
           Dkml_runtimescripts.extract_dkml_scripts ~dkmlversion scripts_dir_fp
@@ -628,7 +628,7 @@ let main_with_result () =
   (Lazy.force get_dkmlhome_dir_opt >>| function
    | None -> ()
    | Some dkmlhome_dir ->
-       Logs.debug (fun l -> l "DKML home directory: %a" Fpath.pp dkmlhome_dir))
+       Logs.debug (fun l -> l "DkML home directory: %a" Fpath.pp dkmlhome_dir))
   >>= fun () ->
   Logs.info (fun l -> l "Running command: %a" Cmd.pp cmd);
 

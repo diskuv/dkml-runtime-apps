@@ -1,4 +1,4 @@
-/* Give back a directory for DKML configuration files that is writable only
+/* Give back a directory for DkML configuration files that is writable only
    by a system administrator.
    
    This executable provides a little bit of safety as a staging-files

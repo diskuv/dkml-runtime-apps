@@ -34,7 +34,7 @@ let setup () =
   Lazy.force Dkml_runtimelib.get_dkmlhome_dir_opt >>| function
   | None -> ()
   | Some dkmlhome_dir ->
-      Logs.debug (fun m -> m "DKML home directory: %a" Fpath.pp dkmlhome_dir)
+      Logs.debug (fun m -> m "DkML home directory: %a" Fpath.pp dkmlhome_dir)
 
 let rresult_to_term_result = function
   | Ok _ -> `Ok ()

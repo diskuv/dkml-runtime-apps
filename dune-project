@@ -60,7 +60,7 @@
 (package
  (name dkml-exe-lib)
  (synopsis "Library containing all the code for the 'dkml' executable")
- (description "'dkml init' creates a local Windows-friendly Opam switch configured with DKML Opam repositories and options")
+ (description "'dkml init' creates a local Windows-friendly Opam switch configured with DkML Opam repositories and options")
  (depends
   (ocaml                (>= 4.12.1))
   (dkml-runtimelib      (= :version))
@@ -72,13 +72,13 @@
 (package
  (name dkml-exe)
  (synopsis "'dkml' executable")
- (description "'dkml init' creates a local Windows-friendly Opam switch configured with DKML Opam repositories and options")
+ (description "'dkml init' creates a local Windows-friendly Opam switch configured with DkML Opam repositories and options")
  (depends
   (dkml-exe-lib         (= :version))))
 
 (package
  (name opam-dkml)
  (synopsis "Opam plugin for DkML. Deprecated; use 'dkml' executable instead")
- (description "An opam plugin where 'opam dkml init' creates a local Windows-friendly Opam switch configured with DKML Opam repositories and options")
+ (description "An opam plugin where 'opam dkml init' creates a local Windows-friendly Opam switch configured with DkML Opam repositories and options")
  (depends
   (dkml-exe-lib         (= :version))))

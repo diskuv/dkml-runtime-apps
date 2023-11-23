@@ -1,6 +1,6 @@
 # dkml-runtime-apps
 
-This repository is meant for DKML contributors.
+This repository is meant for DkML contributors.
 
 ## Building
 

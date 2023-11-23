@@ -121,13 +121,13 @@ let run f_setup localdir_fp_opt yes non_system_compiler system_only
          create-opam-switch.sh has to have a versioned opam repository for
          fdopen-mingw in <DKML_home>/repos/<version> ... and that version has
          to exist. Don't assume that just because we compiled dkml.exe
-         that the DKML version at compile time (obtainable from
+         that the DkML version at compile time (obtainable from
          dkml-runtime-common) will be what is present in <DKML_home>/repos!
 
          2023-11-18: There is no more fdopen-mingw local versioned opam
          repository, so this dkmlversion may be superfluous now. *)
       Lazy.force Dkml_runtimelib.get_dkmlversion >>= fun dkmlversion ->
-      (* Extract all DKML scripts into scripts_dir_fp using installed dkmlversion. *)
+      (* Extract all DkML scripts into scripts_dir_fp using installed dkmlversion. *)
       let scripts_dir_fp = Fpath.(dir_fp // v "scripts") in
       Dkml_runtimescripts.extract_dkml_scripts ~dkmlversion scripts_dir_fp
       >>= fun () ->

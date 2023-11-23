@@ -28,7 +28,7 @@ if (!$DkmlPath) {
     $DkmlPath = $HereDir.Parent.Parent.FullName
 }
 if (!(Test-Path -Path $DkmlPath\.dkmlroot)) {
-    throw "Could not locate the DKML scripts. Thought DkmlPath was $DkmlPath"
+    throw "Could not locate the DkML scripts. Thought DkmlPath was $DkmlPath"
 }
 
 $PSDefaultParameterValues = @{'Out-File:Encoding' = 'utf8'} # for Tee-Object. https://stackoverflow.com/a/58920518

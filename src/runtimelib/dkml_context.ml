@@ -149,7 +149,7 @@ let get_dkmlvars =
             Fpath.(fp / "dkmlvars-v2.sexp" |> to_string)
             association_list_of_sexp_lists)
 
-(* Get DKML version *)
+(* Get DkML version *)
 let get_dkmlversion =
   lazy
     ( Lazy.force get_dkmlvars >>= fun assocl ->
@@ -166,7 +166,7 @@ let pp_dkmlmode fmt = function
   | Nativecode -> Fmt.pf fmt "Nativecode"
   | Bytecode -> Fmt.pf fmt "Bytecode"
 
-(* Get DKML mode. Defaults to nativecode *)
+(* Get DkML mode. Defaults to nativecode *)
 let get_dkmlmode =
   lazy
     ( Lazy.force get_dkmlvars >>= fun assocl ->

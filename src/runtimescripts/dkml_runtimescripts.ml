@@ -67,4 +67,4 @@ let extract_dkml_scripts ~dkmlversion dir_fp =
       Logs.debug (fun l -> l "@[.dkmlroot:@]@,@[  %a@]" Fmt.lines template');
       (* write modified .dkmlroot *)
       OS.File.write Fpath.(dir_fp // v ".dkmlroot") template'
-  | None -> Rresult.R.error_msgf "Could not read the DKML script %s" path
+  | None -> Rresult.R.error_msgf "Could not read the DkML script %s" path
