@@ -1,14 +1,7 @@
-(rule
- (target dkml_config.ml)
- (action
-  (with-stdout-to
-   %{target}
-   (echo "let version = String.trim {|%{read:version.txt}|}\n"))))
-
 (library
  (name dkml_exe_lib)
  (public_name dkml-exe-lib)
- (modules cmd_init dkml_exe_lib dkml_config)
+ (modules cmd_init dkml_exe_lib)
  (libraries
   ; opam-client ... so sad that we don't have it (actually dose3.5.0.1-1) working yet for MSVC!
   dkml_runtimescripts

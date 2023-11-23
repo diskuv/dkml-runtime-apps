@@ -10,24 +10,26 @@ let association_list_of_sexp_lists =
 let association_list_of_sexp =
   Conv.list_of_sexp (Conv.pair_of_sexp Conv.string_of_sexp Conv.string_of_sexp)
 
+(* Mimics paths from [set_dkmlparenthomedir] and also dkml-install-api's [program_name] paths *)
+let program_path ~windows ~unix =
+  let open OS.Env in
+  match req_var "LOCALAPPDATA" with
+  | Ok localappdata ->
+      Fpath.of_string localappdata >>| fun fp ->
+      Fpath.(fp / "Programs" / windows)
+  | Error _ -> (
+      match req_var "XDG_DATA_HOME" with
+      | Ok xdg_data_home ->
+          Fpath.of_string xdg_data_home >>| fun fp -> Fpath.(fp / unix)
+      | Error _ -> (
+          match req_var "HOME" with
+          | Ok home ->
+              Fpath.of_string home >>| fun fp ->
+              Fpath.(fp / ".local" / "share" / unix)
+          | Error _ as err -> err))
+
 (* Mimics set_dkmlparenthomedir *)
-let get_dkmlparenthomedir =
-  lazy
-    (let open OS.Env in
-     match req_var "LOCALAPPDATA" with
-     | Ok localappdata ->
-         Fpath.of_string localappdata >>| fun fp ->
-         Fpath.(fp / "Programs" / "DkML")
-     | Error _ -> (
-         match req_var "XDG_DATA_HOME" with
-         | Ok xdg_data_home ->
-             Fpath.of_string xdg_data_home >>| fun fp -> Fpath.(fp / "dkml")
-         | Error _ -> (
-             match req_var "HOME" with
-             | Ok home ->
-                 Fpath.of_string home >>| fun fp ->
-                 Fpath.(fp / ".local" / "share" / "dkml")
-             | Error _ as err -> err)))
+let get_dkmlparenthomedir = lazy (program_path ~windows:"DkML" ~unix:"dkml")
 
 (** [get_vsstudio_dir_opt] gets the DkML configured Visual Studio
     installation directory. [dkml init --system] is one place where
@@ -149,16 +151,15 @@ let get_dkmlvars =
             Fpath.(fp / "dkmlvars-v2.sexp" |> to_string)
             association_list_of_sexp_lists)
 
-(* Get DkML version *)
-let get_dkmlversion =
+(* Get DkML version. Defaults to the compiled DkML version. *)
+let get_dkmlversion_or_default =
   lazy
     ( Lazy.force get_dkmlvars >>= fun assocl ->
       match List.assoc_opt "DiskuvOCamlVersion" assocl with
       | Some [ v ] -> R.ok v
+      | None | Some [] -> R.ok Dkml_config.version
       | Some _ ->
-          R.error_msg
-            "More or less than one DiskuvOCamlVersion in dkmlvars-v2.sexp"
-      | None -> R.error_msg "No DiskuvOCamlVersion in dkmlvars-v2.sexp" )
+          R.error_msg "More than one DiskuvOCamlVersion in dkmlvars-v2.sexp" )
 
 type dkmlmode = Nativecode | Bytecode
 
@@ -167,7 +168,7 @@ let pp_dkmlmode fmt = function
   | Bytecode -> Fmt.pf fmt "Bytecode"
 
 (* Get DkML mode. Defaults to nativecode *)
-let get_dkmlmode =
+let get_dkmlmode_or_default =
   lazy
     ( Lazy.force get_dkmlvars >>= fun assocl ->
       match List.assoc_opt "DiskuvOCamlMode" assocl with
@@ -177,10 +178,10 @@ let get_dkmlmode =
           R.error_msg
             ("Only native and byte are allowed as the DiskuvOCamlMode in \
               dkmlvars-v2.sexp, not " ^ v)
+      | None | Some [] -> R.ok Nativecode
       | Some _ ->
           R.error_msg
-            "More or less than one DiskuvOCamlMode in dkmlvars-v2.sexp"
-      | None -> R.ok Nativecode )
+            "More or less than one DiskuvOCamlMode in dkmlvars-v2.sexp" )
 
 (* Get MSYS2 directory *)
 let get_msys2_dir_opt =
@@ -213,14 +214,21 @@ let get_dkmlhome_dir_opt =
          | Some [ v ] -> Fpath.of_string v >>= fun fp -> R.ok (Some fp)
          | Some _ | None -> R.ok None))
 
-(* Get DkML home directory *)
-let get_dkmlhome_dir =
+(* Get DkML home directory or the default *)
+let get_dkmlhome_dir_or_default =
   lazy
     (Lazy.force get_dkmlvars >>= function
      | assocl -> (
          match List.assoc_opt "DiskuvOCamlHome" assocl with
          | Some [ v ] -> Fpath.of_string v >>= fun fp -> R.ok fp
+         | None | Some [] -> (
+             Lazy.force get_dkmlmode_or_default >>= fun dkmlmode ->
+             match dkmlmode with
+             | Nativecode ->
+                 (* Confer: dkml-installer-ocaml/i-network/src/private_common.ml *)
+                 program_path ~windows:"DkMLNative" ~unix:"dkml-native"
+             | Bytecode ->
+                 (* Confer: dkml-installer-ocaml-byte/i-offline/src/private_common.ml *)
+                 program_path ~windows:"DkMLByte" ~unix:"dkml-byte")
          | Some _ ->
-             R.error_msg
-               "More or less than one DiskuvOCamlHome in dkmlvars-v2.sexp"
-         | None -> R.error_msg "No DiskuvOCamlHome in dkmlvars-v2.sexp"))
+             R.error_msg "More than one DiskuvOCamlHome in dkmlvars-v2.sexp"))

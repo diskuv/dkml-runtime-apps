@@ -546,8 +546,8 @@ let main_with_result () =
           "Skipping most environment variable configuration because we are in \
            subprocess of some with-dkml.exe");
 
-  Lazy.force get_dkmlversion >>= fun dkmlversion ->
-  Lazy.force get_dkmlmode >>= fun dkmlmode ->
+  Lazy.force get_dkmlversion_or_default >>= fun dkmlversion ->
+  Lazy.force get_dkmlmode_or_default >>= fun dkmlmode ->
   Rresult.R.error_to_msg ~pp_error:Fmt.string
     (Dkml_c_probe.C_abi.V2.get_abi_name ())
   >>= fun target_abi ->

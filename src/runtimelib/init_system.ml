@@ -89,7 +89,7 @@ let create_ocaml_home_with_compiler ~system_cfg ~enable_imprecise_c99_float_ops
           system_cfg.ocaml_compiler_version
   in
   let install_compiler_fp = Fpath.(system_cfg.scripts_dir_fp // rel_fp) in
-  let* dkml_home_fp = Lazy.force Dkml_context.get_dkmlhome_dir in
+  let* dkml_home_fp = Lazy.force Dkml_context.get_dkmlhome_dir_or_default in
   let configure_args =
     if enable_imprecise_c99_float_ops then
       [ "--enable-imprecise-c99-float-ops" ]

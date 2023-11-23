@@ -1,3 +1,10 @@
+(rule
+ (target dkml_config.ml)
+ (action
+  (with-stdout-to
+   %{target}
+   (echo "let version = String.trim {|%{read:version.txt}|}\n"))))
+
 (library
  (name dkml_runtimelib)
  (public_name dkml-runtimelib)

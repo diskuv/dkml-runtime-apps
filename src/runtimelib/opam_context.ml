@@ -61,10 +61,10 @@ module SystemConfig = struct
     ocaml_home_fp_opt : Fpath.t option;
   }
 
-  (** [find_ocaml_home] finds the DkML home directory if it containts usr/bin/ocamlc *)
+  (** [find_ocaml_home] finds the DkML home directory if it contains usr/bin/ocamlc *)
   let find_ocaml_home () =
     let ( let* ) = Result.bind in
-    let* dkml_home_fp = Lazy.force Dkml_context.get_dkmlhome_dir in
+    let* dkml_home_fp = Lazy.force Dkml_context.get_dkmlhome_dir_or_default in
     let* ocaml_fp_opt =
       OS.Cmd.find_tool
         ~search:Fpath.[ dkml_home_fp / "usr" / "bin" ]
@@ -117,7 +117,7 @@ module SystemConfig = struct
       else Ok No_msys2_on_unix
     in
     (* Figure out OPAMHOME which is the DkML home directory as long as it contains the bin/opam *)
-    let* dkml_home_fp = Lazy.force Dkml_context.get_dkmlhome_dir in
+    let* dkml_home_fp = Lazy.force Dkml_context.get_dkmlhome_dir_or_default in
     let* opam_fp =
       OS.Cmd.get_tool ~search:Fpath.[ dkml_home_fp / "bin" ] (Cmd.v "opam")
     in

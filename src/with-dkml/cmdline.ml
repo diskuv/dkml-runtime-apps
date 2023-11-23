@@ -56,7 +56,7 @@ let is_with_dkml_exe filename =
     *)
 let is_bytecode_exe path =
   let ( let* ) = Rresult.R.( >>= ) in
-  let* mode = Lazy.force Dkml_runtimelib.get_dkmlmode in
+  let* mode = Lazy.force Dkml_runtimelib.get_dkmlmode_or_default in
   Logs.debug (fun l ->
       l "Detected DiskuvOCamlMode = %a" Dkml_runtimelib.pp_dkmlmode mode);
   let execs = [ "down"; "ocaml"; "ocamlc"; "utop"; "utop-full" ] in
@@ -200,7 +200,7 @@ let set_enduser_env abs_cmd_p =
 
 let blurb () =
   let ( let* ) = Rresult.R.( >>= ) in
-  let* version = Lazy.force Dkml_runtimelib.get_dkmlversion in
+  let* version = Lazy.force Dkml_runtimelib.get_dkmlversion_or_default in
   Format.eprintf
     {|DkML %-49s https://diskuv.com/dkmlbook/
 DkSDK%-49s https://diskuv.com/pricing

@@ -126,7 +126,7 @@ let run f_setup localdir_fp_opt yes non_system_compiler system_only
 
          2023-11-18: There is no more fdopen-mingw local versioned opam
          repository, so this dkmlversion may be superfluous now. *)
-      Lazy.force Dkml_runtimelib.get_dkmlversion >>= fun dkmlversion ->
+      Lazy.force Dkml_runtimelib.get_dkmlversion_or_default >>= fun dkmlversion ->
       (* Extract all DkML scripts into scripts_dir_fp using installed dkmlversion. *)
       let scripts_dir_fp = Fpath.(dir_fp // v "scripts") in
       Dkml_runtimescripts.extract_dkml_scripts ~dkmlversion scripts_dir_fp
