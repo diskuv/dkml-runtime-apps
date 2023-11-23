@@ -54,7 +54,8 @@ build-test.sh
 ----
 DkML
 ----
-$dkml_version
+dkml_version=$dkml_version
+DISKUV_OPAM_REPOSITORY=${DISKUV_OPAM_REPOSITORY:-}
 .
 ---------
 Arguments
@@ -85,9 +86,12 @@ opamrun exec -- ocamlc -config
 # Update
 opamrun update
 
-# Reset repository to match the current version of DkML, not the dkml-workflows' version
-opamrun repository remove diskuv --all || true
-opamrun repository add diskuv "git+https://github.com/diskuv/diskuv-opam-repository.git#$dkml_version"
+# Let dkml-* packages use their own versions (the DkML version), not the pins from [dkml-workflows]
+opamrun pin remove dkml-compiler-env --yes --no-action || true # dkml-compiler-env will disappear
+opamrun pin dkml-compiler-src -k version "$dkml_version" --yes --no-action
+opamrun pin dkml-runtime-common -k version "$dkml_version" --yes --no-action
+opamrun pin dkml-runtime-distribution -k version "$dkml_version" --yes --no-action
+opamrun upgrade dkml-compiler-src dkml-runtime-common dkml-runtime-distribution --yes
 
 # Make your own build logic! It may look like ...
 opamrun install . --deps-only --with-test --yes
