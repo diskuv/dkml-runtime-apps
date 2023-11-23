@@ -121,3 +121,39 @@ jobs:
       - name: Teardown DkML compilers on a Linux host
         if: startsWith(matrix.dkml_host_abi, 'linux_')
         uses: ./.ci/dkml-compilers/gh-linux/post
+
+      # Upload artifact
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.dkml_host_abi }}
+          path: dist/
+
+  #--------
+  # Release
+  #--------
+
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed for softprops/action-gh-release@v1
+    # Wait until `build` complete
+    needs:
+      - build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - uses: actions/download-artifact@v3
+        with:
+          path: dist
+
+      - name: Restructure multi-ABI directories
+        run: ci/prepare-release.sh
+
+      - name: Release (only when Git tag pushed)
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            _release/*

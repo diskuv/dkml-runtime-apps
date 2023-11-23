@@ -43,11 +43,18 @@ if [ -x /usr/bin/cygpath ]; then
     PROJECT_DIR=$(/usr/bin/cygpath -au "$PROJECT_DIR")
 fi
 
+dkml_version=$(cat "$PROJECT_DIR/src/runtimelib/version.txt")
+
 # shellcheck disable=SC2154
 echo "
 =============
 build-test.sh
 =============
+.
+----
+DkML
+----
+$dkml_version
 .
 ---------
 Arguments
@@ -78,6 +85,56 @@ opamrun exec -- ocamlc -config
 # Update
 opamrun update
 
+# Reset repository to match the current version of DkML, not the dkml-workflows' version
+opamrun repository remove diskuv --all || true
+opamrun repository add diskuv "git+https://github.com/diskuv/diskuv-opam-repository.git#$dkml_version"
+
 # Make your own build logic! It may look like ...
 opamrun install . --deps-only --with-test --yes
-opamrun exec -- dune runtest
+case "$dkml_host_abi" in
+darwin_x86_64)
+    toolchain=darwin_arm64;;
+*)
+    toolchain=''
+esac
+if [ -n "$toolchain" ]; then
+    opamrun exec -- dune build -x "$toolchain"
+else
+    opamrun exec -- dune build
+fi
+
+# ------------ Verbatim from diskuvbox (plus for OPAM_PKGNAME loop) --------------
+
+# Prereq: Diagnostics
+case "${dkml_host_abi}" in
+linux_*)
+    if command -v apk; then
+        apk add file
+    fi ;;
+esac
+
+# Copy the installed binaries (including cross-compiled ones) from Opam into dist/ folder.
+# Name the binaries with the target ABI since GitHub Releases are flat namespaces.
+install -d dist/
+mv _build/install/default "_build/install/default.${dkml_host_abi}"
+set +f
+for OPAM_PKGNAME in dkml with-dkml; do
+for i in _build/install/default.*; do
+  target_abi=$(basename "$i" | sed s/default.//)
+  if [ -e "_build/install/default.${target_abi}/bin/${OPAM_PKGNAME}.exe" ]; then
+    install -v "_build/install/default.${target_abi}/bin/${OPAM_PKGNAME}.exe" "dist/${target_abi}-${OPAM_PKGNAME}.exe"
+    file "dist/${target_abi}-${OPAM_PKGNAME}.exe"
+  else
+    install -v "_build/install/default.${target_abi}/bin/${OPAM_PKGNAME}" "dist/${target_abi}-${OPAM_PKGNAME}"
+    file "dist/${target_abi}-${OPAM_PKGNAME}"
+  fi
+done
+done
+
+# For Windows you must ask your users to first install the vc_redist executable.
+# Confer: https://github.com/diskuv/dkml-workflows#distributing-your-windows-executables
+case "${dkml_host_abi}" in
+windows_x86_64) wget -O dist/vc_redist.x64.exe https://aka.ms/vs/17/release/vc_redist.x64.exe ;;
+windows_x86) wget -O dist/vc_redist.x86.exe https://aka.ms/vs/17/release/vc_redist.x86.exe ;;
+windows_arm64) wget -O dist/vc_redist.arm64.exe https://aka.ms/vs/17/release/vc_redist.arm64.exe ;;
+esac
