@@ -164,12 +164,12 @@ let set_precompiled_env abs_cmd_p =
             in
             when_dir_exists_prepend_pathlike_env ~envvar:"PATH" bc_stublibs_p
         | false ->
-            (* Unix (generally) requires .so in LD_LIBRARY_PATH *)
+            (* Unix (generally) requires .so in CAML_LD_LIBRARY_PATH *)
             let* () =
-              when_dir_exists_prepend_pathlike_env ~envvar:"LD_LIBRARY_PATH"
+              when_dir_exists_prepend_pathlike_env ~envvar:"CAML_LD_LIBRARY_PATH"
                 bc_ocaml_stublibs_p
             in
-            when_dir_exists_prepend_pathlike_env ~envvar:"LD_LIBRARY_PATH"
+            when_dir_exists_prepend_pathlike_env ~envvar:"CAML_LD_LIBRARY_PATH"
               bc_stublibs_p
       in
       (* Dune requires ocamlc in the PATH. It should already be present
