@@ -11,25 +11,28 @@ let association_list_of_sexp =
   Conv.list_of_sexp (Conv.pair_of_sexp Conv.string_of_sexp Conv.string_of_sexp)
 
 (* Mimics paths from [set_dkmlparenthomedir] and also dkml-install-api's [program_name] paths *)
-let program_path ~windows ~unix =
+let program_path ~camel_cased ~kebab_cased =
   let open OS.Env in
-  match req_var "LOCALAPPDATA" with
-  | Ok localappdata ->
+  match (Sys.win32, var "LOCALAPPDATA") with
+  | true, Some localappdata when String.length localappdata > 0 ->
       Fpath.of_string localappdata >>| fun fp ->
-      Fpath.(fp / "Programs" / windows)
-  | Error _ -> (
-      match req_var "XDG_DATA_HOME" with
-      | Ok xdg_data_home ->
-          Fpath.of_string xdg_data_home >>| fun fp -> Fpath.(fp / unix)
-      | Error _ -> (
+      Fpath.(fp / "Programs" / camel_cased)
+  | _ -> (
+      match var "XDG_DATA_HOME" with
+      | Some xdg_data_home when String.length xdg_data_home > 0 ->
+          Fpath.of_string xdg_data_home >>| fun fp -> Fpath.(fp / kebab_cased)
+      | _ -> (
           match req_var "HOME" with
           | Ok home ->
               Fpath.of_string home >>| fun fp ->
-              Fpath.(fp / ".local" / "share" / unix)
+              if String.equal Dkml_config.ocaml_system "macosx" then
+                Fpath.(fp / "Applications" / camel_cased)
+              else Fpath.(fp / ".local" / "share" / kebab_cased)
           | Error _ as err -> err))
 
 (* Mimics set_dkmlparenthomedir *)
-let get_dkmlparenthomedir = lazy (program_path ~windows:"DkML" ~unix:"dkml")
+let get_dkmlparenthomedir =
+  lazy (program_path ~camel_cased:"DkML" ~kebab_cased:"dkml")
 
 (** [get_vsstudio_dir_opt] gets the DkML configured Visual Studio
     installation directory. [dkml init --system] is one place where
@@ -225,10 +228,10 @@ let get_dkmlhome_dir_or_default =
     match dkmlmode with
     | Nativecode ->
         (* Confer: dkml-installer-ocaml/i-network/src/private_common.ml *)
-        program_path ~windows:"DkMLNative" ~unix:"dkml-native"
+        program_path ~camel_cased:"DkMLNative" ~kebab_cased:"dkml-native"
     | Bytecode ->
         (* Confer: dkml-installer-ocaml-byte/i-offline/src/private_common.ml *)
-        program_path ~windows:"DkMLByte" ~unix:"dkml-byte"
+        program_path ~camel_cased:"DkMLByte" ~kebab_cased:"dkml-byte"
   in
   lazy
     (Lazy.force get_dkmlvars_opt >>= function

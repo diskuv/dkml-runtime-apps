@@ -3,7 +3,9 @@
  (action
   (with-stdout-to
    %{target}
-   (echo "let version = String.trim {|%{read:version.txt}|}\n"))))
+   (progn
+    (echo "let version = String.trim {|%{read:version.txt}|}\n")
+    (echo "let ocaml_system = String.trim {|%{system}|}\n")))))
 
 (library
  (name dkml_runtimelib)
