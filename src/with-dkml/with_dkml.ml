@@ -607,8 +607,11 @@ let main_with_result () =
         (* Now we finish gathering information to create switches *)
         Dkml_runtimelib.SystemConfig.create ~scripts_dir_fp ()
       in
-      Dkml_runtimelib.init_system ~delete_temp_dir_after_init:() ~f_temp_dir
-        ~f_system_cfg ()
+      (* By default we disable sandboxing so that macOS/Unix actually work
+         out-of-the-box. If the user wants something different, they
+         can do [dkml init --system <options>] before. *)
+      Dkml_runtimelib.init_system ~disable_sandboxing:()
+        ~delete_temp_dir_after_init:() ~f_temp_dir ~f_system_cfg ()
       >>= fun ec ->
       if ec <> 0 then exit ec;
       (* EIGHTH, stop tracing variables from propagating. *)

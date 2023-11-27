@@ -27,6 +27,7 @@ val get_msys2_create_opam_switch_options : SystemConfig.msys2_t -> string list
 
 val init_system :
   ?enable_imprecise_c99_float_ops:unit ->
+  ?disable_sandboxing:unit ->
   ?delete_temp_dir_after_init:unit ->
   f_temp_dir:(unit -> (Fpath.t, Rresult.R.msg) result) ->
   f_system_cfg:

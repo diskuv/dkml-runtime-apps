@@ -24,6 +24,15 @@ let enable_imprecise_c99_float_ops_t =
   in
   Arg.(value & flag & info [ "enable-imprecise-c99-float-ops" ] ~doc)
 
+let disable_sandboxing_t =
+  let doc =
+    "Disables the creation of sandboxes during `opam install` commands. Poorly \
+     written or malicious opam packages may erase or modify files on your \
+     macOS and Linux machines. Ignored for Windows and all other non-macOS and \
+     non-Linux machines."
+  in
+  Arg.(value & flag & info [ "disable-sandboxing" ] ~doc)
+
 let non_system_opt = "non-system-compiler"
 
 let non_system_compiler_t =
@@ -106,10 +115,11 @@ let create_local_switch ~system_cfg ~scripts_dir_fp ~yes ~non_system_compiler
       Ok (128 + signal)
 
 let run f_setup localdir_fp_opt yes non_system_compiler system_only
-    enable_imprecise_c99_float_ops =
+    enable_imprecise_c99_float_ops disable_sandboxing =
   let enable_imprecise_c99_float_ops =
     if enable_imprecise_c99_float_ops then Some () else None
   in
+  let disable_sandboxing = if disable_sandboxing then Some () else None in
   f_setup () >>= fun () ->
   OS.Dir.with_tmp "dkml-initsystem-de-%s" (* de = dkml-exe *)
     (fun dir_fp () ->
@@ -146,8 +156,8 @@ let run f_setup localdir_fp_opt yes non_system_compiler system_only
         ignore temp_dir;
         Ok system_cfg
       in
-      Dkml_runtimelib.init_system ?enable_imprecise_c99_float_ops ~f_temp_dir
-        ~f_system_cfg ()
+      Dkml_runtimelib.init_system ?enable_imprecise_c99_float_ops
+        ?disable_sandboxing ~f_temp_dir ~f_system_cfg ()
       >>= fun ec ->
       if ec <> 0 then exit ec;
       (* Create local switch *)

@@ -46,13 +46,18 @@ let create_playground_switch ~system_cfg ~ocaml_home_fp ~opamroot_dir_fp =
   (* Run the command *)
   run_command cmd rel_fp
 
-let create_opam_root ~opamroot_dir_fp ~ocaml_home_fp ~system_cfg =
+let create_opam_root ?disable_sandboxing ?reinit ~opamroot_dir_fp ~ocaml_home_fp
+    ~system_cfg () =
   (* Assemble command line arguments *)
   let open Opam_context.SystemConfig in
   let* rel_fp =
     Fpath.of_string "vendor/drd/src/unix/private/init-opam-root.sh"
   in
   let init_opam_root_fp = Fpath.(system_cfg.scripts_dir_fp // rel_fp) in
+  let disable_sandboxing_args =
+    match disable_sandboxing with Some () -> [ "-x" ] | None -> []
+  in
+  let reinit_args = match reinit with Some () -> [ "-i" ] | None -> [] in
   let cmd =
     Cmd.of_list
       (system_cfg.env_exe_wrapper
@@ -67,7 +72,8 @@ let create_opam_root ~opamroot_dir_fp ~ocaml_home_fp ~system_cfg =
           Fpath.to_string opamroot_dir_fp;
           "-v";
           Fpath.to_string ocaml_home_fp;
-        ])
+        ]
+      @ disable_sandboxing_args @ reinit_args)
   in
   (* Run the command *)
   run_command cmd rel_fp
@@ -130,12 +136,14 @@ let critical_vsstudio_files =
 type opamroot_status =
   | Opamroot_missing
   | Opamroot_no_repository
-  | Opamroot_complete
+  | Opamroot_complete_with_sandbox
+  | Opamroot_complete_without_sandbox
 
 let get_opamroot_status () =
   let* opamroot_dir_fp = Lazy.force Opam_context.get_opam_root in
-  let* opamroot_exists = OS.File.exists Fpath.(opamroot_dir_fp / "config") in
-  if opamroot_exists then
+  let config = Fpath.(opamroot_dir_fp / "config") in
+  let* config_exists = OS.File.exists config in
+  if config_exists then
     let* dkml_version = Lazy.force Dkml_context.get_dkmlversion_or_default in
     (* COMPLETE: The diskuv-<VERSION> repository must exist *)
     let* diskuv_repo =
@@ -149,8 +157,23 @@ let get_opamroot_status () =
           opamroot_dir_fp / "repo"
           / Printf.sprintf "diskuv-%s.tar.gz" dkml_version)
     in
+    (* Does <opamroot>/config have:
+          wrap-build-commands:
+            ["%{hooks}%/sandbox.sh" "build"] {os = "linux" | os = "macos"}
+          wrap-install-commands:
+            ["%{hooks}%/sandbox.sh" "install"] {os = "linux" | os = "macos"}
+          wrap-remove-commands:
+            ["%{hooks}%/sandbox.sh" "remove"] {os = "linux" | os = "macos"}
+    *)
+    let* config_contents = OS.File.read config in
+    let config_contains_sandbox =
+      Astring.String.find_sub ~sub:"%{hooks}%/sandbox.sh" config_contents
+      |> Option.is_some
+    in
     let state =
-      if diskuv_repo || diskuv_repo_targz then Opamroot_complete
+      if diskuv_repo || diskuv_repo_targz then
+        if config_contains_sandbox then Opamroot_complete_with_sandbox
+        else Opamroot_complete_without_sandbox
       else Opamroot_no_repository
     in
     Ok state
@@ -214,8 +237,8 @@ let verify_git ~msg_why_check_git ~what_install =
            git') to install it.")
   else Ok ()
 
-let init_system_helper ?enable_imprecise_c99_float_ops ~f_system_cfg ~temp_dir
-    () =
+let init_system_helper ?enable_imprecise_c99_float_ops ?disable_sandboxing
+    ~f_system_cfg ~temp_dir () =
   (*
 
      DEVELOPER NOTE:
@@ -278,26 +301,35 @@ let init_system_helper ?enable_imprecise_c99_float_ops ~f_system_cfg ~temp_dir
         let* ec =
           let what_install = "\"opam root\" package cache" in
           match opamroot_status with
-          | Opamroot_complete -> Ok 0
-          | Opamroot_missing ->
-              let msg_why =
-                "Detected that the \"opam root\" package cache is not present."
+          | Opamroot_complete_without_sandbox -> Ok 0
+          | Opamroot_complete_with_sandbox when disable_sandboxing = None ->
+              Ok 0
+          | Opamroot_missing | Opamroot_no_repository
+          | Opamroot_complete_with_sandbox ->
+              let msg_why, action, reinit =
+                match opamroot_status with
+                | Opamroot_no_repository ->
+                    ( "Detected that the \"opam root\" package cache is \
+                       missing the DkML repository.",
+                      "Creating it",
+                      None )
+                | Opamroot_complete_with_sandbox ->
+                    ( "Detected that the \"opam root\" package cache is \
+                       configured for sandboxing.",
+                      "Disabling sandboxing",
+                      Some () )
+                | _ ->
+                    ( "Detected that the \"opam root\" package cache is not \
+                       present.",
+                      "Creating it",
+                      None )
               in
               let* () = verify_git ~msg_why_check_git:msg_why ~what_install in
               Logs.warn (fun l ->
-                  l "%s Creating it now. ETA: 10 minutes." msg_why);
+                  l "%s %s now. ETA: 10 minutes." msg_why action);
               let* system_cfg = Lazy.force system_cfg in
-              create_opam_root ~opamroot_dir_fp ~ocaml_home_fp ~system_cfg
-          | Opamroot_no_repository ->
-              let msg_why =
-                "Detected that the \"opam root\" package cache is missing the \
-                 DkML repository."
-              in
-              let* () = verify_git ~msg_why_check_git:msg_why ~what_install in
-              Logs.warn (fun l ->
-                  l "%s Creating it now. ETA: 10 minutes." msg_why);
-              let* system_cfg = Lazy.force system_cfg in
-              create_opam_root ~opamroot_dir_fp ~ocaml_home_fp ~system_cfg
+              create_opam_root ?disable_sandboxing ?reinit ~opamroot_dir_fp
+                ~ocaml_home_fp ~system_cfg ()
         in
         if ec <> 0 then Ok ec (* short-circuit exit if signal raised *)
         else
@@ -316,15 +348,15 @@ let init_system_helper ?enable_imprecise_c99_float_ops ~f_system_cfg ~temp_dir
             let* system_cfg = Lazy.force system_cfg in
             create_playground_switch ~opamroot_dir_fp ~ocaml_home_fp ~system_cfg)
 
-let init_system ?enable_imprecise_c99_float_ops ?delete_temp_dir_after_init
-    ~f_temp_dir ~f_system_cfg () =
+let init_system ?enable_imprecise_c99_float_ops ?disable_sandboxing
+    ?delete_temp_dir_after_init ~f_temp_dir ~f_system_cfg () =
   let* temp_dir = f_temp_dir () in
   let delayed_error = ref (Ok 0) in
   let* ec =
     Fun.protect
       ~finally:(fun () ->
         if Option.is_some delete_temp_dir_after_init then
-          match OS.Dir.delete temp_dir with
+          match OS.Dir.delete ~recurse:true temp_dir with
           | Ok () -> ()
           | Error (`Msg msg) -> (
               match !delayed_error with
@@ -340,7 +372,7 @@ let init_system ?enable_imprecise_c99_float_ops ?delete_temp_dir_after_init
                         Fpath.pp temp_dir msg)))
       (fun () ->
         let* (_created : bool) = OS.Dir.create temp_dir in
-        init_system_helper ?enable_imprecise_c99_float_ops ~f_system_cfg
-          ~temp_dir ())
+        init_system_helper ?enable_imprecise_c99_float_ops ?disable_sandboxing
+          ~f_system_cfg ~temp_dir ())
   in
   match !delayed_error with Ok _ -> Ok ec | Error e -> Error e
