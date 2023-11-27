@@ -154,12 +154,14 @@ let get_dkmlvars =
 (* Get DkML version. Defaults to the compiled DkML version. *)
 let get_dkmlversion_or_default =
   lazy
-    ( Lazy.force get_dkmlvars >>= fun assocl ->
-      match List.assoc_opt "DiskuvOCamlVersion" assocl with
-      | Some [ v ] -> R.ok v
-      | None | Some [] -> R.ok Dkml_config.version
-      | Some _ ->
-          R.error_msg "More than one DiskuvOCamlVersion in dkmlvars-v2.sexp" )
+    (Lazy.force get_dkmlvars_opt >>= function
+     | None -> R.ok Dkml_config.version
+     | Some assocl -> (
+         match List.assoc_opt "DiskuvOCamlVersion" assocl with
+         | Some [ v ] -> R.ok v
+         | None | Some [] -> R.ok Dkml_config.version
+         | Some _ ->
+             R.error_msg "More than one DiskuvOCamlVersion in dkmlvars-v2.sexp"))
 
 type dkmlmode = Nativecode | Bytecode
 
@@ -170,18 +172,20 @@ let pp_dkmlmode fmt = function
 (* Get DkML mode. Defaults to nativecode *)
 let get_dkmlmode_or_default =
   lazy
-    ( Lazy.force get_dkmlvars >>= fun assocl ->
-      match List.assoc_opt "DiskuvOCamlMode" assocl with
-      | Some [ "native" ] -> R.ok Nativecode
-      | Some [ "byte" ] -> R.ok Bytecode
-      | Some [ v ] ->
-          R.error_msg
-            ("Only native and byte are allowed as the DiskuvOCamlMode in \
-              dkmlvars-v2.sexp, not " ^ v)
-      | None | Some [] -> R.ok Nativecode
-      | Some _ ->
-          R.error_msg
-            "More or less than one DiskuvOCamlMode in dkmlvars-v2.sexp" )
+    (Lazy.force get_dkmlvars_opt >>= function
+     | None -> R.ok Nativecode
+     | Some assocl -> (
+         match List.assoc_opt "DiskuvOCamlMode" assocl with
+         | Some [ "native" ] -> R.ok Nativecode
+         | Some [ "byte" ] -> R.ok Bytecode
+         | Some [ v ] ->
+             R.error_msg
+               ("Only native and byte are allowed as the DiskuvOCamlMode in \
+                 dkmlvars-v2.sexp, not " ^ v)
+         | None | Some [] -> R.ok Nativecode
+         | Some _ ->
+             R.error_msg
+               "More or less than one DiskuvOCamlMode in dkmlvars-v2.sexp"))
 
 (* Get MSYS2 directory *)
 let get_msys2_dir_opt =
@@ -216,19 +220,22 @@ let get_dkmlhome_dir_opt =
 
 (* Get DkML home directory or the default *)
 let get_dkmlhome_dir_or_default =
+  let get_default () =
+    Lazy.force get_dkmlmode_or_default >>= fun dkmlmode ->
+    match dkmlmode with
+    | Nativecode ->
+        (* Confer: dkml-installer-ocaml/i-network/src/private_common.ml *)
+        program_path ~windows:"DkMLNative" ~unix:"dkml-native"
+    | Bytecode ->
+        (* Confer: dkml-installer-ocaml-byte/i-offline/src/private_common.ml *)
+        program_path ~windows:"DkMLByte" ~unix:"dkml-byte"
+  in
   lazy
-    (Lazy.force get_dkmlvars >>= function
-     | assocl -> (
+    (Lazy.force get_dkmlvars_opt >>= function
+     | None -> get_default ()
+     | Some assocl -> (
          match List.assoc_opt "DiskuvOCamlHome" assocl with
          | Some [ v ] -> Fpath.of_string v >>= fun fp -> R.ok fp
-         | None | Some [] -> (
-             Lazy.force get_dkmlmode_or_default >>= fun dkmlmode ->
-             match dkmlmode with
-             | Nativecode ->
-                 (* Confer: dkml-installer-ocaml/i-network/src/private_common.ml *)
-                 program_path ~windows:"DkMLNative" ~unix:"dkml-native"
-             | Bytecode ->
-                 (* Confer: dkml-installer-ocaml-byte/i-offline/src/private_common.ml *)
-                 program_path ~windows:"DkMLByte" ~unix:"dkml-byte")
+         | None | Some [] -> get_default ()
          | Some _ ->
              R.error_msg "More than one DiskuvOCamlHome in dkmlvars-v2.sexp"))
