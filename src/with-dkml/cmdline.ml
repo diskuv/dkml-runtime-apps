@@ -96,7 +96,7 @@ let is_blurb_exe filename =
 
 let canonical_path_sep = if Sys.win32 then ";" else ":"
 
-let when_dir_exists_prepend_pathlike_env ~envvar dir =
+let when_dir_exists_mutate_pathlike_env ~envvar ~f_mutating dir =
   let ( let* ) = Rresult.R.( >>= ) in
   let old_path, existing_paths =
     match OS.Env.var envvar with
@@ -110,14 +110,26 @@ let when_dir_exists_prepend_pathlike_env ~envvar dir =
       Logs.debug (fun l ->
           l "Skipping adding pre-existent %a to PATH" Fpath.pp dir);
       Ok ())
-    else (
-      Logs.debug (fun l -> l "Prepending %a to %s" Fpath.pp dir envvar);
-      let new_path =
-        if String.equal "" old_path then entry
-        else entry ^ canonical_path_sep ^ old_path
-      in
-      OS.Env.set_var envvar (Some new_path))
+    else
+      let new_path = f_mutating ~old_path ~entry in
+      OS.Env.set_var envvar (Some new_path)
   else Ok ()
+
+let when_dir_exists_prepend_pathlike_env ~envvar dir =
+  let f_mutating ~old_path ~entry =
+    Logs.debug (fun l -> l "Prepending %a to %s" Fpath.pp dir envvar);
+    if String.equal "" old_path then entry
+    else entry ^ canonical_path_sep ^ old_path
+  in
+  when_dir_exists_mutate_pathlike_env ~envvar ~f_mutating dir
+
+let when_dir_exists_append_pathlike_env ~envvar dir =
+  let f_mutating ~old_path ~entry =
+    Logs.debug (fun l -> l "Appending %a to %s" Fpath.pp dir envvar);
+    if String.equal "" old_path then entry
+    else old_path ^ canonical_path_sep ^ entry
+  in
+  when_dir_exists_mutate_pathlike_env ~envvar ~f_mutating dir
 
 let when_path_exists_set_env ~envvar path =
   let ( let* ) = Rresult.R.( >>= ) in
@@ -354,6 +366,20 @@ let create_and_setenv_if_necessary () =
           Ok real_p
     in
     Ok (abs_cmd_p, real_exe)
+  in
+  (* Always add DkML home binaries like `ocaml` to the end of the PATH.
+     Commands like `opam exec -- ocamlc -config` should find [ocamlc].
+
+     But do not place at the start of the PATH because we want the user
+     (or opam, etc.) to be able to override it. *)
+  let* dkmlhome_dir = Lazy.force Dkml_runtimelib.get_dkmlhome_dir_or_default in
+  let* () =
+    when_dir_exists_append_pathlike_env ~envvar:"PATH"
+      Fpath.(dkmlhome_dir / "usr" / "bin")
+  in
+  let* () =
+    when_dir_exists_append_pathlike_env ~envvar:"PATH"
+      Fpath.(dkmlhome_dir / "bin")
   in
   let+ cmd_and_args =
     match Array.to_list Sys.argv with
