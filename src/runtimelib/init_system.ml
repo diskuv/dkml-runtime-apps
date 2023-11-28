@@ -237,6 +237,37 @@ let verify_git ~msg_why_check_git ~what_install =
            git') to install it.")
   else Ok ()
 
+(** opam 2.2 prerelease 2022-12-20 (alpha0) does not disable the sandbox
+   with --reinit on macOS. So hack is to just kill the statements in the 'config' file. *)
+let use_disable_sandbox_hack () = true
+
+let sandbox_statements =
+  {|
+wrap-build-commands:
+  ["%{hooks}%/sandbox.sh" "build"] {os = "linux" | os = "macos"}
+wrap-install-commands:
+  ["%{hooks}%/sandbox.sh" "install"] {os = "linux" | os = "macos"}
+wrap-remove-commands:
+  ["%{hooks}%/sandbox.sh" "remove"] {os = "linux" | os = "macos"}
+|}
+
+let turn_off_sandboxing ~opamroot_dir_fp ~ocaml_home_fp ~system_cfg =
+  if use_disable_sandbox_hack () then (
+    let* opamroot_dir_fp = Lazy.force Opam_context.get_opam_root in
+    let config = Fpath.(opamroot_dir_fp / "config") in
+    let* config_contents = OS.File.read config in
+    (* Remove [sandbox_statements] *)
+    let new_contents =
+      Astring.String.(
+        cuts ~sep:sandbox_statements config_contents |> concat ~sep:"")
+    in
+    let* () = OS.File.write config new_contents in
+    Logs.info (fun l -> l "Removed sandbox wrappers from %a" Fpath.pp config);
+    Ok 0)
+  else
+    create_opam_root ~disable_sandboxing:() ~reinit:() ~opamroot_dir_fp
+      ~ocaml_home_fp ~system_cfg ()
+
 let init_system_helper ?enable_imprecise_c99_float_ops ?disable_sandboxing
     ~f_system_cfg ~temp_dir () =
   (*
@@ -306,30 +337,33 @@ let init_system_helper ?enable_imprecise_c99_float_ops ?disable_sandboxing
               Ok 0
           | Opamroot_missing | Opamroot_no_repository
           | Opamroot_complete_with_sandbox ->
-              let msg_why, action, reinit =
+              let msg_why, action, should_turn_off_sandboxing =
                 match opamroot_status with
                 | Opamroot_no_repository ->
                     ( "Detected that the \"opam root\" package cache is \
                        missing the DkML repository.",
                       "Creating it",
-                      None )
+                      false )
                 | Opamroot_complete_with_sandbox ->
                     ( "Detected that the \"opam root\" package cache is \
                        configured for sandboxing.",
                       "Disabling sandboxing",
-                      Some () )
+                      true )
                 | _ ->
                     ( "Detected that the \"opam root\" package cache is not \
                        present.",
                       "Creating it",
-                      None )
+                      false )
               in
               let* () = verify_git ~msg_why_check_git:msg_why ~what_install in
               Logs.warn (fun l ->
                   l "%s %s now. ETA: 10 minutes." msg_why action);
               let* system_cfg = Lazy.force system_cfg in
-              create_opam_root ?disable_sandboxing ?reinit ~opamroot_dir_fp
-                ~ocaml_home_fp ~system_cfg ()
+              if should_turn_off_sandboxing then
+                turn_off_sandboxing ~opamroot_dir_fp ~ocaml_home_fp ~system_cfg
+              else
+                create_opam_root ?disable_sandboxing ~opamroot_dir_fp
+                  ~ocaml_home_fp ~system_cfg ()
         in
         if ec <> 0 then Ok ec (* short-circuit exit if signal raised *)
         else
