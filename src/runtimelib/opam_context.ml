@@ -1,7 +1,14 @@
 open Bos
 open Rresult
 
-let fpath_notnull f = Fpath.compare OS.File.null f <> 0
+(** Like [OS.Env.path] but parses to an [Fpath.t option] so it does not error on
+    empty strings (or ever). *)
+let fpath_opt_parser =
+  OS.Env.parser "file path" (fun s ->
+      match Fpath.of_string s with
+      | Ok p -> Some (Some p)
+      (* Returning [None] will force the parser to fail. *)
+      | Error _ -> Some None)
 
 (** [get_opam_root] is a lazy function that gets the OPAMROOT environment variable.
     If OPAMROOT is not found, then <LOCALAPPDATA>/opam is used for Windows
@@ -11,35 +18,35 @@ let fpath_notnull f = Fpath.compare OS.File.null f <> 0
   *)
 let get_opam_root =
   lazy
-    ( OS.Env.parse "LOCALAPPDATA" OS.Env.path ~absent:OS.File.null
-    >>= fun localappdata ->
-      OS.Env.parse "XDG_CONFIG_HOME" OS.Env.path ~absent:OS.File.null
-      >>= fun xdgconfighome ->
-      OS.Env.parse "HOME" OS.Env.path ~absent:OS.File.null >>= fun home ->
-      OS.Env.parse "OPAMROOT" OS.Env.path ~absent:OS.File.null
-      >>= fun opamroot ->
-      match
-        ( fpath_notnull opamroot,
-          fpath_notnull localappdata,
-          fpath_notnull xdgconfighome,
-          fpath_notnull home )
-      with
-      | true, _, _, _ -> R.ok opamroot
-      | false, true, _, _ -> R.ok Fpath.(localappdata / "opam")
-      | false, false, true, _ -> R.ok Fpath.(xdgconfighome / "opam")
-      | false, false, false, true -> R.ok Fpath.(home / ".config" / "opam")
-      | false, false, false, false ->
-          R.error_msg
-            "Unable to locate Opam root because none of LOCALAPPDATA, \
-             XDG_CONFIG_HOME, HOME or OPAMROOT was set" )
+    (let ( let* ) = Result.bind in
+     let* localappdata =
+       OS.Env.parse "LOCALAPPDATA" fpath_opt_parser ~absent:None
+     in
+     let* xdgconfighome =
+       OS.Env.parse "XDG_CONFIG_HOME" fpath_opt_parser ~absent:None
+     in
+     let* home = OS.Env.parse "HOME" fpath_opt_parser ~absent:None in
+     let* opamroot = OS.Env.parse "OPAMROOT" fpath_opt_parser ~absent:None in
+     match (opamroot, localappdata, xdgconfighome, home) with
+     | Some opamroot, _, _, _ -> R.ok opamroot
+     | _, Some localappdata, _, _ -> R.ok Fpath.(localappdata / "opam")
+     | _, _, Some xdgconfighome, _ -> R.ok Fpath.(xdgconfighome / "opam")
+     | _, _, _, Some home -> R.ok Fpath.(home / ".config" / "opam")
+     | _, _, _, _ ->
+         R.error_msg
+           "Unable to locate Opam root because none of LOCALAPPDATA, \
+            XDG_CONFIG_HOME, HOME or OPAMROOT was set")
 
 let get_opam_switch_prefix =
   lazy
-    ( Lazy.force get_opam_root >>= fun opamroot ->
-      OS.Env.parse "OPAM_SWITCH_PREFIX" OS.Env.path ~absent:OS.File.null
-      >>| fun opamswitchprefix ->
-      if fpath_notnull opamswitchprefix then opamswitchprefix
-      else Fpath.(opamroot / "playground") )
+    (let ( let* ) = Result.bind in
+     let* opamroot = Lazy.force get_opam_root in
+     let* opamswitchprefix =
+       OS.Env.parse "OPAM_SWITCH_PREFIX" fpath_opt_parser ~absent:None
+     in
+     match opamswitchprefix with
+     | Some opamswitchprefix -> Ok opamswitchprefix
+     | None -> Ok Fpath.(opamroot / "playground"))
 
 (** [SystemConfig] is the state of a DkML system after initial installation, and possibly after.
     
