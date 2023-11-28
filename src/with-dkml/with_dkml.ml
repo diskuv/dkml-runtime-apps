@@ -589,50 +589,31 @@ let main_with_result () =
          third party entries (like vcpkg) _after_ MSVC. *)
       set_3p_prefix_entries cache_keys >>= fun cache_keys ->
       (* SIXTH, set third-party (3p) program entries. *)
-      set_3p_program_entries cache_keys >>= fun _cache_keys ->
-      (* SEVENTH, initialize the system if necessary *)
-      let f_temp_dir () =
-        (* Caution: Never use the current opam switch to store the temp dir
-           because it can be erased if [opam = with-dkml] and [opam remove <current switch>].
-           Which is precisely what happens during [create-opam-switch.sh] during
-           the [playground] switch creation. *)
-        OS.Dir.tmp "dkml-initsystem-wd-%s" (* wd = with-dkml *)
-      in
-      let f_system_cfg ~temp_dir () =
-        (* Extract all DkML scripts into scripts_dir_fp using installed dkmlversion. *)
-        let scripts_dir_fp = Fpath.(temp_dir // v "scripts") in
-        let* () =
-          Dkml_runtimescripts.extract_dkml_scripts ~dkmlversion scripts_dir_fp
-        in
-        (* Now we finish gathering information to create switches *)
-        Dkml_runtimelib.SystemConfig.create ~scripts_dir_fp ()
-      in
-      (* By default we disable sandboxing so that macOS/Unix actually work
-         out-of-the-box. If the user wants something different, they
-         can do [dkml init --system <options>] before. *)
-      Dkml_runtimelib.init_system ~disable_sandboxing:()
-        ~delete_temp_dir_after_init:() ~f_temp_dir ~f_system_cfg ()
-      >>= fun ec ->
-      if ec <> 0 then exit ec;
-      (* EIGHTH, stop tracing variables from propagating. *)
-      OS.Env.set_var "DKML_BUILD_TRACE" None >>= fun () ->
-      OS.Env.set_var "DKML_BUILD_TRACE_LEVEL" None
+      set_3p_program_entries cache_keys >>= fun _cache_keys -> Ok ()
   in
-  (* Create a command line like `...\usr\bin\env.exe CMD [ARGS...]`.
+  (* SEVENTH, Create a command line like `...\usr\bin\env.exe CMD [ARGS...]`.
      More environment entries can be made, but this is at the end where
      there is no need to cache the environment. *)
-  Cmdline.create_and_setenv_if_necessary () >>= fun cmd ->
+  let* cmd = Cmdline.create_and_setenv_if_necessary () in
+  let* () =
+    if minimize_sideeffects then Ok ()
+    else
+      (* EIGHTH, stop tracing variables from propagating. *)
+      let* () = OS.Env.set_var "DKML_BUILD_TRACE" None in
+      OS.Env.set_var "DKML_BUILD_TRACE_LEVEL" None
+  in
   (* Diagnostics *)
-  OS.Env.current () >>= fun current_env ->
-  OS.Dir.current () >>= fun current_dir ->
+  let* current_env = OS.Env.current () in
+  let* current_dir = OS.Dir.current () in
   Logs.debug (fun l ->
       l "Environment:@\n%a" Astring.String.Map.dump_string_map current_env);
   Logs.debug (fun l -> l "Current directory: %a" Fpath.pp current_dir);
-  (Lazy.force get_dkmlhome_dir_opt >>| function
-   | None -> ()
-   | Some dkmlhome_dir ->
-       Logs.debug (fun l -> l "DkML home directory: %a" Fpath.pp dkmlhome_dir))
-  >>= fun () ->
+  let* () =
+    Lazy.force get_dkmlhome_dir_opt >>| function
+    | None -> ()
+    | Some dkmlhome_dir ->
+        Logs.debug (fun l -> l "DkML home directory: %a" Fpath.pp dkmlhome_dir)
+  in
   Logs.info (fun l -> l "Running command: %a" Cmd.pp cmd);
 
   (* Run the command *)

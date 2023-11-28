@@ -156,7 +156,7 @@ let run f_setup localdir_fp_opt yes non_system_compiler system_only
         ignore temp_dir;
         Ok system_cfg
       in
-      Dkml_runtimelib.init_system ?enable_imprecise_c99_float_ops
+      Dkml_runtimelib.init_nativecode_system ?enable_imprecise_c99_float_ops
         ?disable_sandboxing ~f_temp_dir ~f_system_cfg ()
       >>= fun ec ->
       if ec <> 0 then exit ec;

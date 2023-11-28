@@ -268,8 +268,8 @@ let turn_off_sandboxing ~opamroot_dir_fp ~ocaml_home_fp ~system_cfg =
     create_opam_root ~disable_sandboxing:() ~reinit:() ~opamroot_dir_fp
       ~ocaml_home_fp ~system_cfg ()
 
-let init_system_helper ?enable_imprecise_c99_float_ops ?disable_sandboxing
-    ~f_system_cfg ~temp_dir () =
+let init_nativecode_system_helper ?enable_imprecise_c99_float_ops
+    ?disable_sandboxing ~f_system_cfg ~temp_dir () =
   (*
 
      DEVELOPER NOTE:
@@ -382,7 +382,7 @@ let init_system_helper ?enable_imprecise_c99_float_ops ?disable_sandboxing
             let* system_cfg = Lazy.force system_cfg in
             create_playground_switch ~opamroot_dir_fp ~ocaml_home_fp ~system_cfg)
 
-let init_system ?enable_imprecise_c99_float_ops ?disable_sandboxing
+let init_nativecode_system ?enable_imprecise_c99_float_ops ?disable_sandboxing
     ?delete_temp_dir_after_init ~f_temp_dir ~f_system_cfg () =
   let* temp_dir = f_temp_dir () in
   let delayed_error = ref (Ok 0) in
@@ -406,7 +406,7 @@ let init_system ?enable_imprecise_c99_float_ops ?disable_sandboxing
                         Fpath.pp temp_dir msg)))
       (fun () ->
         let* (_created : bool) = OS.Dir.create temp_dir in
-        init_system_helper ?enable_imprecise_c99_float_ops ?disable_sandboxing
-          ~f_system_cfg ~temp_dir ())
+        init_nativecode_system_helper ?enable_imprecise_c99_float_ops
+          ?disable_sandboxing ~f_system_cfg ~temp_dir ())
   in
   match !delayed_error with Ok _ -> Ok ec | Error e -> Error e

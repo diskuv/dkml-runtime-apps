@@ -59,7 +59,7 @@ let is_bytecode_exe path =
   let* mode = Lazy.force Dkml_runtimelib.get_dkmlmode_or_default in
   Logs.debug (fun l ->
       l "Detected DiskuvOCamlMode = %a" Dkml_runtimelib.pp_dkmlmode mode);
-  let execs = [ "down"; "ocaml"; "ocamlc"; "utop"; "utop-full" ] in
+  let execs = [ "down"; "ocaml"; "ocamlc"; "ocamlcp"; "utop"; "utop-full" ] in
   let execs =
     match mode with
     | Nativecode -> execs
@@ -166,8 +166,8 @@ let set_precompiled_env abs_cmd_p =
         | false ->
             (* Unix (generally) requires .so in CAML_LD_LIBRARY_PATH *)
             let* () =
-              when_dir_exists_prepend_pathlike_env ~envvar:"CAML_LD_LIBRARY_PATH"
-                bc_ocaml_stublibs_p
+              when_dir_exists_prepend_pathlike_env
+                ~envvar:"CAML_LD_LIBRARY_PATH" bc_ocaml_stublibs_p
             in
             when_dir_exists_prepend_pathlike_env ~envvar:"CAML_LD_LIBRARY_PATH"
               bc_stublibs_p
@@ -199,7 +199,7 @@ let set_enduser_env abs_cmd_p =
   | _ -> Ok ()
 
 let blurb () =
-  let ( let* ) = Rresult.R.( >>= ) in
+  let ( let* ) = Result.bind in
   let* version = Lazy.force Dkml_runtimelib.get_dkmlversion_or_default in
   Format.eprintf
     {|DkML %-49s https://diskuv.com/dkmlbook/
@@ -207,6 +207,54 @@ DkSDK%-49s https://diskuv.com/pricing
 @.|}
     (version ^ ": Open source. Full-stack OCaml.")
     ": 30 day risk free. C/C++/Java/Swift and OCaml.";
+  Ok ()
+
+let setup_bytecode_env ~abs_cmd_p =
+  Logs.debug (fun l ->
+      l
+        "Detected precompiled invocation of non-opam command. Setting \
+         environment to have relocatable findlib configuration and stub \
+         libraries");
+  set_precompiled_env abs_cmd_p
+
+let setup_nativecode_env ~abs_cmd_p =
+  Logs.debug (fun l ->
+      l
+        "Detected enduser invocation of non-opam command. Setting environment \
+         to have install-time findlib configuration");
+  set_enduser_env abs_cmd_p
+
+let init_nativecode_system_if_necessary () =
+  let ( let* ) = Result.bind in
+  (* Initialize the native code system.
+
+     By default we disable sandboxing so that macOS/Unix actually work
+     out-of-the-box. If the user wants something different, they
+     can do [dkml init --system <options>] before. *)
+  let* () =
+    let* dkmlversion = Lazy.force Dkml_runtimelib.get_dkmlversion_or_default in
+    let f_temp_dir () =
+      (* Caution: Never use the current opam switch to store the temp dir
+         because it can be erased if [opam = with-dkml] and [opam remove <current switch>].
+         Which is precisely what happens during [create-opam-switch.sh] during
+         the [playground] switch creation. *)
+      OS.Dir.tmp "dkml-initsystem-wd-%s" (* wd = with-dkml *)
+    in
+    let f_system_cfg ~temp_dir () =
+      (* Extract all DkML scripts into scripts_dir_fp using installed dkmlversion. *)
+      let scripts_dir_fp = Fpath.(temp_dir // v "scripts") in
+      let* () =
+        Dkml_runtimescripts.extract_dkml_scripts ~dkmlversion scripts_dir_fp
+      in
+      (* Now we finish gathering information to create switches *)
+      Dkml_runtimelib.SystemConfig.create ~scripts_dir_fp ()
+    in
+    let* ec =
+      Dkml_runtimelib.init_nativecode_system ~disable_sandboxing:()
+        ~delete_temp_dir_after_init:() ~f_temp_dir ~f_system_cfg ()
+    in
+    if ec = 0 then Ok () else Error (`Msg "Program interrupted")
+  in
   Ok ()
 
 (** Create a command line like [let cmdline_a = [".../usr/bin/env.exe"; Args.others]]
@@ -356,19 +404,13 @@ let create_and_setenv_if_necessary () =
               Ok ()
           | None, true ->
               (* bytecode_exe *)
-              Logs.debug (fun l ->
-                  l
-                    "Detected precompiled invocation of non-opam command. \
-                     Setting environment to have relocatable findlib \
-                     configuration and stub libraries");
-              set_precompiled_env abs_cmd_p
+              setup_bytecode_env ~abs_cmd_p
           | None, false ->
               (* not bytecode_exe *)
-              Logs.debug (fun l ->
-                  l
-                    "Detected enduser invocation of non-opam command. Setting \
-                     environment to have install-time findlib configuration");
-              set_enduser_env abs_cmd_p
+              setup_nativecode_env ~abs_cmd_p
+        in
+        let* () =
+          if bytecode_exe then Ok () else init_nativecode_system_if_necessary ()
         in
         Ok (env_exe_wrapper @ [ Fpath.to_string real_exe ] @ args)
     | _ ->
