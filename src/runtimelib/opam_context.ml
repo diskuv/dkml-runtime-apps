@@ -66,9 +66,7 @@ module SystemConfig = struct
     let ( let* ) = Result.bind in
     let* dkml_home_fp = Lazy.force Dkml_context.get_dkmlhome_dir_or_default in
     let* ocaml_fp_opt =
-      OS.Cmd.find_tool
-        ~search:Fpath.[ dkml_home_fp / "usr" / "bin" ]
-        (Cmd.v "ocamlc")
+      OS.Cmd.find_tool ~search:Fpath.[ dkml_home_fp / "bin" ] (Cmd.v "ocamlc")
     in
     match ocaml_fp_opt with
     | None -> Ok None
