@@ -116,6 +116,10 @@ let create_local_switch ~system_cfg ~scripts_dir_fp ~yes ~non_system_compiler
 
 let run f_setup localdir_fp_opt yes non_system_compiler system_only
     enable_imprecise_c99_float_ops disable_sandboxing =
+  let ( let* ) = Result.bind in
+  let* (_has_dkml_mutating_ancestor_process : bool) =
+    Dkml_runtimelib.Dkml_environment.mark_dkml_mutating_ancestor_process ()
+  in
   let enable_imprecise_c99_float_ops =
     if enable_imprecise_c99_float_ops then Some () else None
   in

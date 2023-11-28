@@ -3,6 +3,30 @@ open Dkml_context
 open Bos
 open Astring
 
+let guard_envname = "DKML_GUARD"
+
+(** Marks this process as a DkML environment mutating process if there is no
+    such process as an ancestor. 
+
+    DkML environment mutations are:
+    - setting DkML compiler environment variables like INCLUDE and LIB for MSVC
+    - initializing the DkML system (OCaml compiler, opam root, etc.)
+
+    Returns true if and only if an ancestor (either ["dkml.exe"] or ["with-dkml.exe"])
+    had been marked as DkML environment mutating. *)
+let mark_dkml_mutating_ancestor_process () =
+  let guard_value = OS.Env.opt_var guard_envname ~absent:"0" in
+  let pid_str = Int.to_string (Unix.getpid ()) in
+  let has_ancestor =
+    (not (String.equal guard_value "0"))
+    && not (String.equal guard_value pid_str)
+  in
+  if has_ancestor then Ok true
+  else
+    let ( let* ) = Result.bind in
+    let* () = OS.Env.set_var guard_envname (Some pid_str) in
+    Ok false
+
 let platform_path_norm s =
   match Dkml_c_probe.C_abi.V2.get_os () with
   | Ok IOS | Ok OSX | Ok Windows -> String.Ascii.lowercase s
@@ -34,7 +58,7 @@ let prune_path_of_msys2 prefix =
 (** Set the MSYSTEM environment variable to MSYS and place MSYS2 binaries at the front of the PATH.
     Any existing MSYS2 binaries in the PATH will be removed.
   *)
-let set_msys2_entries ~minimize_sideeffects target_platform_name =
+let set_msys2_entries ~has_dkml_mutating_ancestor_process target_platform_name =
   Lazy.force get_msys2_dir_opt >>= function
   | None -> R.ok ()
   | Some msys2_dir ->
@@ -116,12 +140,12 @@ let set_msys2_entries ~minimize_sideeffects target_platform_name =
       OS.Env.set_var "MSYS2_ARG_CONV_EXCL" (Some "*") >>= fun () ->
       (* 3. Remove MSYS2 entries, if any, from PATH
             _unless_ we are minimizing side-effects *)
-      (if minimize_sideeffects then Ok ()
+      (if has_dkml_mutating_ancestor_process then Ok ()
        else prune_path_of_msys2 msystem_prefix)
       >>= fun () ->
       (* 4. Add MSYS2 <prefix>/bin and /usr/bin to front of PATH
             _unless_ we are minimizing side-effects. *)
-      if minimize_sideeffects then Ok ()
+      if has_dkml_mutating_ancestor_process then Ok ()
       else
         OS.Env.req_var "PATH" >>= fun path ->
         OS.Env.set_var "PATH"

@@ -28,7 +28,6 @@ let create_playground_switch ~system_cfg ~ocaml_home_fp ~opamroot_dir_fp =
           Fpath.to_string create_switch_fp;
           "-p";
           system_cfg.target_abi;
-          "-y";
           "-w";
           "-n";
           "playground";

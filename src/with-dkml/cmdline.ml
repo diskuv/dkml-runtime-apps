@@ -311,7 +311,7 @@ let init_nativecode_system_if_necessary () =
     3. ["../lib/ocaml/stublibs"] and ["../share/bc/lib/stublibs"] are added to
     the PATH on Windows (or LD_LIBRARY_PATH on Unix) if the directories exist.
 *)
-let create_and_setenv_if_necessary () =
+let create_and_setenv_if_necessary ~has_dkml_mutating_ancestor_process () =
   let ( let* ) = Rresult.R.( >>= ) in
   let ( let+ ) = Rresult.R.( >>| ) in
   let* env_exe_wrapper = Dkml_runtimelib.Dkml_environment.env_exe_wrapper () in
@@ -436,7 +436,12 @@ let create_and_setenv_if_necessary () =
               setup_nativecode_env ~abs_cmd_p
         in
         let* () =
-          if bytecode_exe then Ok () else init_nativecode_system_if_necessary ()
+          match (has_dkml_mutating_ancestor_process, bytecode_exe) with
+          | true, _ ->
+              (* never init system when perhaps we are already initting system *)
+              Ok ()
+          | false, true -> Ok ()
+          | false, false -> init_nativecode_system_if_necessary ()
         in
         Ok (env_exe_wrapper @ [ Fpath.to_string real_exe ] @ args)
     | _ ->

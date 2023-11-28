@@ -519,45 +519,49 @@ let set_3p_program_entries cache_keys =
 
 let main_with_result () =
   let ( let* ) = R.( >>= ) in
+
+  (* ZEROTH, check and set a recursion guard so that only one set
+     of environment mutations is performed.
+
+     The following env mutations will still happen:
+     1. [create_and_setenv_if_necessary ()] like initializing the DkML system
+     2. On Windows, [set_msys2_entries ()] like MSYSTEM
+  *)
+  let* has_dkml_mutating_ancestor_process =
+    mark_dkml_mutating_ancestor_process ()
+  in
+
   (* Setup logging *)
   Fmt_tty.setup_std_outputs ();
   Logs.set_reporter (Logs_fmt.reporter ());
-  let dbt = OS.Env.value "DKML_BUILD_TRACE" OS.Env.string ~absent:"OFF" in
-  if
-    dbt = "ON"
-    && OS.Env.value "DKML_BUILD_TRACE_LEVEL" int_parser ~absent:0 >= 2
-  then Logs.set_level (Some Logs.Debug)
-  else if dbt = "ON" then Logs.set_level (Some Logs.Info)
-  else Logs.set_level (Some Logs.Warning);
+  (if has_dkml_mutating_ancestor_process then
+     (* Incredibly important that we do not print unexpected output.
+        For example, [opam install ocaml-system] -> [ocamlc -vnum]
+        the [ocamlc -vnum] must print 4.14.0 (or whatever the version is).
+        It must not print any logs, even to standard error. *)
+     Logs.set_level (Some Logs.Error)
+   else
+     let dbt = OS.Env.value "DKML_BUILD_TRACE" OS.Env.string ~absent:"OFF" in
+     if
+       dbt = "ON"
+       && OS.Env.value "DKML_BUILD_TRACE_LEVEL" int_parser ~absent:0 >= 2
+     then Logs.set_level (Some Logs.Debug)
+     else if dbt = "ON" then Logs.set_level (Some Logs.Info)
+     else Logs.set_level (Some Logs.Warning));
 
-  (* ZEROTH, check and set a recursion guard so that only one environment
-     modification is performed.
-
-     The following env modifications will still happen:
-     1. create_and_setenv_if_necessary ()
-     2. msystem
-  *)
-  let original_guard = OS.Env.opt_var "WITHDKML_GUARD" ~absent:"0" in
-  OS.Env.set_var "WITHDKML_GUARD" (Some "1") >>= fun () ->
-  let minimize_sideeffects = "1" = original_guard in
-  if minimize_sideeffects then
-    Logs.debug (fun l ->
-        l
-          "Skipping most environment variable configuration because we are in \
-           subprocess of some with-dkml.exe");
-
-  Lazy.force get_dkmlversion_or_default >>= fun dkmlversion ->
-  Lazy.force get_dkmlmode_or_default >>= fun dkmlmode ->
-  Rresult.R.error_to_msg ~pp_error:Fmt.string
-    (Dkml_c_probe.C_abi.V2.get_abi_name ())
-  >>= fun target_abi ->
+  let* dkmlversion = Lazy.force get_dkmlversion_or_default in
+  let* dkmlmode = Lazy.force get_dkmlmode_or_default in
+  let* target_abi =
+    Rresult.R.error_to_msg ~pp_error:Fmt.string
+      (Dkml_c_probe.C_abi.V2.get_abi_name ())
+  in
   let cache_keys = [ dkmlversion ] in
   (* FIRST, set DKML_TARGET_ABI, which may be overridden by DKML_TARGET_PLATFORM_OVERRIDE *)
   let target_abi =
     OS.Env.opt_var "DKML_TARGET_PLATFORM_OVERRIDE" ~absent:target_abi
   in
   let* () =
-    if minimize_sideeffects then Ok ()
+    if has_dkml_mutating_ancestor_process then Ok ()
     else OS.Env.set_var "DKML_TARGET_ABI" (Some target_abi)
   in
   let cache_keys = target_abi :: cache_keys in
@@ -570,11 +574,12 @@ let main_with_result () =
   *)
   let* () =
     match dkmlmode with
-    | Nativecode -> set_msys2_entries ~minimize_sideeffects target_abi
+    | Nativecode ->
+        set_msys2_entries ~has_dkml_mutating_ancestor_process target_abi
     | Bytecode -> Ok ()
   in
   let* () =
-    if minimize_sideeffects then Ok ()
+    if has_dkml_mutating_ancestor_process then Ok ()
     else
       (* THIRD, set temporary variables *)
       set_tempvar_entries cache_keys >>= fun cache_keys ->
@@ -594,9 +599,12 @@ let main_with_result () =
   (* SEVENTH, Create a command line like `...\usr\bin\env.exe CMD [ARGS...]`.
      More environment entries can be made, but this is at the end where
      there is no need to cache the environment. *)
-  let* cmd = Cmdline.create_and_setenv_if_necessary () in
+  let* cmd =
+    Cmdline.create_and_setenv_if_necessary ~has_dkml_mutating_ancestor_process
+      ()
+  in
   let* () =
-    if minimize_sideeffects then Ok ()
+    if has_dkml_mutating_ancestor_process then Ok ()
     else
       (* EIGHTH, stop tracing variables from propagating. *)
       let* () = OS.Env.set_var "DKML_BUILD_TRACE" None in
