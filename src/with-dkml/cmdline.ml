@@ -142,26 +142,27 @@ let when_path_exists_set_env ~envvar path =
 
 let set_precompiled_env abs_cmd_p =
   let ( let* ) = Rresult.R.( >>= ) in
-  (* In Opam switch or in global environment?
-
-      Do not use the global bytecode environment if inside an Opam switch.
-      Really only applies to [dune] which has a dune+shim package.
-  *)
+  (* Installation prefix *)
+  let prefix_p = Fpath.(parent (parent abs_cmd_p)) in
+  let bc_p = Fpath.(prefix_p / "desktop" / "bc") in
+  let bc_bin_p = Fpath.(bc_p / "bin") in
+  let bc_ocaml_lib_p = Fpath.(bc_p / "lib" / "ocaml") in
+  let bc_ocaml_stublibs_p = Fpath.(bc_ocaml_lib_p / "stublibs") in
+  let bc_stublibs_p = Fpath.(bc_p / "lib" / "stublibs") in
+  let findlib_conf =
+    Fpath.(prefix_p / "usr" / "lib" / "findlib-precompiled.conf")
+  in
+  (* Notes:
+      Do not re-apply the global bytecode environment variables if inside an
+        Opam switch, which will have its own environment variables (but not OCAMLLIB
+        so set that) and its own ocamlfind configuration (so do not set OCAMLFIND_CONF).
+      Really only applies to [dune] which has a dune+shim package. *)
+  (* OCAMLLIB *)
+  let* () = when_path_exists_set_env ~envvar:"OCAMLLIB" bc_ocaml_lib_p in
+  (* In Opam switch or in global environment? *)
   match OS.Env.opt_var ~absent:"" "OPAM_SWITCH_PREFIX" with
   | "" ->
       (* Not in an Opam switch. *)
-      (* Installation prefix *)
-      let prefix_p = Fpath.(parent (parent abs_cmd_p)) in
-      let bc_p = Fpath.(prefix_p / "desktop" / "bc") in
-      let bc_bin_p = Fpath.(bc_p / "bin") in
-      let bc_ocaml_lib_p = Fpath.(bc_p / "lib" / "ocaml") in
-      let bc_ocaml_stublibs_p = Fpath.(bc_ocaml_lib_p / "stublibs") in
-      let bc_stublibs_p = Fpath.(bc_p / "lib" / "stublibs") in
-      let findlib_conf =
-        Fpath.(prefix_p / "usr" / "lib" / "findlib-precompiled.conf")
-      in
-      (* OCAMLLIB *)
-      let* () = when_path_exists_set_env ~envvar:"OCAMLLIB" bc_ocaml_lib_p in
       (* OCAMLFIND_CONF *)
       let* () =
         when_path_exists_set_env ~envvar:"OCAMLFIND_CONF" findlib_conf
