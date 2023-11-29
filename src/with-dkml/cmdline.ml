@@ -368,20 +368,6 @@ let create_and_setenv_if_necessary ~has_dkml_mutating_ancestor_process () =
     in
     Ok (abs_cmd_p, real_exe)
   in
-  (* Always add DkML home binaries like `ocaml` to the end of the PATH.
-     Commands like `opam exec -- ocamlc -config` should find [ocamlc].
-
-     But do not place at the start of the PATH because we want the user
-     (or opam, etc.) to be able to override it. *)
-  let* dkmlhome_dir = Lazy.force Dkml_runtimelib.get_dkmlhome_dir_or_default in
-  let* () =
-    when_dir_exists_append_pathlike_env ~envvar:"PATH"
-      Fpath.(dkmlhome_dir / "usr" / "bin")
-  in
-  let* () =
-    when_dir_exists_append_pathlike_env ~envvar:"PATH"
-      Fpath.(dkmlhome_dir / "bin")
-  in
   let+ cmd_and_args =
     match Array.to_list Sys.argv with
     (* CMDLINE_A FORM *)
