@@ -1,6 +1,6 @@
 #!/bin/sh
 # ----------------------------
-# install-ocaml.sh DKMLDIR GIT_TAG_OR_COMMIT DKMLHOSTABI INSTALLDIR CONFIGUREARGS
+# install-ocaml-compiler.sh DKMLDIR GIT_TAG_OR_COMMIT DKMLHOSTABI INSTALLDIR CONFIGUREARGS
 
 set -euf
 

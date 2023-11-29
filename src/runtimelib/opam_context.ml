@@ -68,7 +68,8 @@ module SystemConfig = struct
     ocaml_home_fp_opt : Fpath.t option;
   }
 
-  (** [find_ocaml_home] finds the DkML home directory if it contains usr/bin/ocamlc *)
+  (** [find_ocaml_home] finds the DkML home directory if it contains usr/bin/ocamlc.
+      Native tools like ocamlopt do not need to be present. *)
   let find_ocaml_home () =
     let ( let* ) = Result.bind in
     let* dkml_home_fp = Lazy.force Dkml_context.get_dkmlhome_dir_or_default in
