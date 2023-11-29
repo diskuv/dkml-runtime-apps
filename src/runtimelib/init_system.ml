@@ -77,40 +77,6 @@ let create_opam_root ?disable_sandboxing ?reinit ~opamroot_dir_fp ~ocaml_home_fp
   (* Run the command *)
   run_command cmd rel_fp
 
-let restore_ocaml_shims ~system_cfg =
-  let doit () =
-    (* Assemble command line arguments *)
-    let open Opam_context.SystemConfig in
-    let* rel_fp = Fpath.of_string "restore-ocaml-shims.sh" in
-    let replace_shims_fp = Fpath.(system_cfg.scripts_dir_fp // rel_fp) in
-    let* dkml_home_fp = Lazy.force Dkml_context.get_dkmlhome_dir_or_default in
-    let cmd =
-      Cmd.of_list
-        (system_cfg.env_exe_wrapper
-        @ [
-            "/bin/sh";
-            Fpath.to_string replace_shims_fp;
-            (* INSTALLDIR *)
-            Fpath.to_string dkml_home_fp;
-          ])
-    in
-    (* Run the command, but immediate exit if interrupted *)
-    match run_command cmd rel_fp with
-    | Ok 0 -> Ok ()
-    | Ok i ->
-        Logs.err (fun l ->
-            l "Restoration of bytecode shims interrupted. Code: %d" i);
-        exit 1
-    | Error e -> Error e
-  in
-  match doit () with
-  | Ok () -> ()
-  | Error e ->
-      (* Immediate exit if failed *)
-      Logs.err (fun l ->
-          l "Restoration of bytecode shims failed. %a" Rresult.R.pp_msg e);
-      exit 1
-
 type ocamlhome_status =
   | Ocamlhome_valid of Fpath.t
   | Ocamlhome_interrupted of int
@@ -311,13 +277,9 @@ let create_nativecode_compiler ~system_cfg ~enable_imprecise_c99_float_ops =
   in
   Logs.warn (fun l -> l "%s Creating it now. ETA: 15 minutes." msg_why);
   let* system_cfg = Lazy.force system_cfg in
-  (* Whether or not the native code compiler succeeds, we have to restore the OCaml shims *)
-  Fun.protect
-    ~finally:(fun () -> restore_ocaml_shims ~system_cfg)
-    (fun () ->
-      create_ocaml_home_with_compiler ~system_cfg
-        ~enable_imprecise_c99_float_ops:
-          (Option.is_some enable_imprecise_c99_float_ops))
+  create_ocaml_home_with_compiler ~system_cfg
+    ~enable_imprecise_c99_float_ops:
+      (Option.is_some enable_imprecise_c99_float_ops)
 
 let init_nativecode_system_helper ?enable_imprecise_c99_float_ops
     ?disable_sandboxing ~f_system_cfg ~temp_dir () =
