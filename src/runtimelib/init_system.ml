@@ -397,28 +397,19 @@ let init_nativecode_system_helper ?enable_imprecise_c99_float_ops
 let init_nativecode_system ?enable_imprecise_c99_float_ops ?disable_sandboxing
     ?delete_temp_dir_after_init ~f_temp_dir ~f_system_cfg () =
   let* temp_dir = f_temp_dir () in
-  let delayed_error = ref (Ok 0) in
-  let* ec =
-    Fun.protect
-      ~finally:(fun () ->
-        if Option.is_some delete_temp_dir_after_init then
-          match OS.Dir.delete ~recurse:true temp_dir with
-          | Ok () -> ()
-          | Error (`Msg msg) -> (
-              match !delayed_error with
-              | Ok _ ->
-                  delayed_error :=
-                    Error
-                      (`Msg
-                        ("Deleting the temporary directory after the auto init \
-                          of the DkML system failed: " ^ msg))
-              | Error _ ->
-                  Logs.warn (fun l ->
-                      l "Deleting the temporary directory %a failed: %s"
-                        Fpath.pp temp_dir msg)))
-      (fun () ->
-        let* (_created : bool) = OS.Dir.create temp_dir in
-        init_nativecode_system_helper ?enable_imprecise_c99_float_ops
-          ?disable_sandboxing ~f_system_cfg ~temp_dir ())
-  in
-  match !delayed_error with Ok _ -> Ok ec | Error e -> Error e
+  Fun.protect
+    ~finally:(fun () ->
+      if Option.is_some delete_temp_dir_after_init then
+        (* On Windows this could fail because it does not have diskuvbox logic.
+           Confer https://github.com/dbuenzli/bos/issues/98 for a problem with
+           read-only files like [cache-vsstudio.bat]. *)
+        match OS.Dir.delete ~recurse:true temp_dir with
+        | Ok () -> ()
+        | Error (`Msg msg) -> (
+          Logs.warn (fun l ->
+              l "Deleting the temporary directory %a failed: %s"
+                Fpath.pp temp_dir msg)))
+    (fun () ->
+      let* (_created : bool) = OS.Dir.create temp_dir in
+      init_nativecode_system_helper ?enable_imprecise_c99_float_ops
+        ?disable_sandboxing ~f_system_cfg ~temp_dir ())
