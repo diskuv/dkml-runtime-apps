@@ -53,17 +53,22 @@ let is_with_dkml_exe filename =
     checksums ... no "Inconsistent assumptions over interface"). Said another
     way, the native code (end-user compiled binaries and stdlib) are
     incompatible with the pre-built bytecode (stdlib and 3rd party libraries).
+
+    2023-11-29: Now that precompiled "global-compile" executables are all in
+    usr/bin/, [ocamlfind] will always be bytecode listing. In fact, [ocamlfind]
+    will not be in bin/ since bin/ is reserved for the global OCaml system; any
+    opam switch will instead use its own [ocamlfind] package if they need it.
     *)
 let is_bytecode_exe path =
   let ( let* ) = Rresult.R.( >>= ) in
   let* mode = Lazy.force Dkml_runtimelib.get_dkmlmode_or_default in
   Logs.debug (fun l ->
       l "Detected DiskuvOCamlMode = %a" Dkml_runtimelib.pp_dkmlmode mode);
-  let execs = [ "down"; "ocaml"; "ocamlc"; "ocamlcp"; "utop"; "utop-full" ] in
+  let execs = [ "down"; "ocaml"; "ocamlc"; "ocamlcp"; "ocamlfind"; "utop"; "utop-full" ] in
   let execs =
     match mode with
     | Nativecode -> execs
-    | Bytecode -> "ocamlfind" :: "dune" :: execs
+    | Bytecode -> "dune" :: execs
   in
   let search_list_lowercase =
     List.map (fun filename -> [ filename; filename ^ ".exe" ]) execs
