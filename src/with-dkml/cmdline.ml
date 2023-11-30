@@ -64,11 +64,11 @@ let is_bytecode_exe path =
   let* mode = Lazy.force Dkml_runtimelib.get_dkmlmode_or_default in
   Logs.debug (fun l ->
       l "Detected DiskuvOCamlMode = %a" Dkml_runtimelib.pp_dkmlmode mode);
-  let execs = [ "down"; "ocaml"; "ocamlc"; "ocamlcp"; "ocamlfind"; "utop"; "utop-full" ] in
   let execs =
-    match mode with
-    | Nativecode -> execs
-    | Bytecode -> "dune" :: execs
+    [ "down"; "ocaml"; "ocamlc"; "ocamlcp"; "ocamlfind"; "utop"; "utop-full" ]
+  in
+  let execs =
+    match mode with Nativecode -> execs | Bytecode -> "dune" :: execs
   in
   let search_list_lowercase =
     List.map (fun filename -> [ filename; filename ^ ".exe" ]) execs
@@ -81,6 +81,12 @@ let is_bytecode_exe path =
 
 let is_opam_exe filename =
   let search_list_lowercase = [ "opam"; "opam.exe" ] in
+  is_basename_of_filename_in_search_list ~search_list_lowercase filename
+
+let needs_ocamlrun filename =
+  let search_list_lowercase =
+    [ "ocaml"; "ocaml.exe"; "utop"; "utop.exe"; "utop-full"; "utop-full.exe" ]
+  in
   is_basename_of_filename_in_search_list ~search_list_lowercase filename
 
 let is_blurb_exe filename =
@@ -318,6 +324,7 @@ let init_nativecode_system_if_necessary () =
        [standard_library]) if the directory exists.
     3. ["../lib/ocaml/stublibs"] and ["../share/bc/lib/stublibs"] are added to
     the PATH on Windows (or LD_LIBRARY_PATH on Unix) if the directories exist.
+    4. If ["ocaml"], ["utop"] or ["utop-full"] they are launched using ["ocamlrun"]
 *)
 let create_and_setenv_if_necessary ~has_dkml_mutating_ancestor_process () =
   let ( let* ) = Rresult.R.( >>= ) in
@@ -417,17 +424,30 @@ let create_and_setenv_if_necessary ~has_dkml_mutating_ancestor_process () =
         let* () = if is_blurb_exe cmd && args = [] then blurb () else Ok () in
         let* abs_cmd_p, real_exe = get_abs_cmd_and_real_exe ?opam cmd in
         let* bytecode_exe = is_bytecode_exe abs_cmd_p in
-        let* () =
-          match (opam, bytecode_exe) with
-          | Some (), _ ->
+        let* extra_wrappers =
+          match (opam, cmd, bytecode_exe) with
+          | Some (), _, _ ->
               (* opam should never set OCAMLFIND_CONF, etc. *)
-              Ok ()
-          | None, true ->
+              Ok []
+          | None, _, true when needs_ocamlrun cmd ->
+              (* bytecode_exe. Use [ocamlrun] to launch since the build machine's
+                 ocamlrun path (which very likely does not exist) is hardcoded
+                 and will fail. *)
+              let* ocamlrun =
+                OS.Cmd.get_tool
+                  ~search:Fpath.[ parent abs_cmd_p ]
+                  Cmd.(v "ocamlrun")
+              in
+              let* () = setup_bytecode_env ~abs_cmd_p in
+              Ok [ Fpath.to_string ocamlrun ]
+          | None, _, true ->
               (* bytecode_exe *)
-              setup_bytecode_env ~abs_cmd_p
-          | None, false ->
+              let* () = setup_bytecode_env ~abs_cmd_p in
+              Ok []
+          | None, _, false ->
               (* not bytecode_exe *)
-              setup_nativecode_env ~abs_cmd_p
+              let* () = setup_nativecode_env ~abs_cmd_p in
+              Ok []
         in
         let* () =
           match (has_dkml_mutating_ancestor_process, bytecode_exe) with
@@ -437,7 +457,10 @@ let create_and_setenv_if_necessary ~has_dkml_mutating_ancestor_process () =
           | false, true -> Ok ()
           | false, false -> init_nativecode_system_if_necessary ()
         in
-        Ok (env_exe_wrapper @ [ Fpath.to_string real_exe ] @ args)
+        Ok
+          (env_exe_wrapper @ extra_wrappers
+          @ [ Fpath.to_string real_exe ]
+          @ args)
     | _ ->
         Rresult.R.error_msgf "You need to supply a command, like `%s bash`"
           OS.Arg.exec
