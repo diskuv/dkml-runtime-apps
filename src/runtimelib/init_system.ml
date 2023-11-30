@@ -31,6 +31,11 @@ let create_playground_switch ~system_cfg ~ocaml_home_fp ~opamroot_dir_fp =
           "-w";
           "-n";
           "playground";
+          (* The playground switch is for the use of teaching OCaml and as such is fully under the ownership
+             of DkML. That means no user prompts are required when killing it. In fact, doing a
+             [dune build] and having a question posed is a serious violation of user experience _and_
+             may break build tooling that expects no user prompts on stdin. *)
+          "-y";
           "-v";
           Fpath.to_string ocaml_home_fp;
           "-o";
