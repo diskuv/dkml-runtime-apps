@@ -142,10 +142,10 @@ let when_path_exists_set_env ~envvar path =
 
 let set_precompiled_env abs_cmd_p =
   let ( let* ) = Rresult.R.( >>= ) in
-  (* Installation prefix *)
-  let prefix_p = Fpath.(parent (parent abs_cmd_p)) in
+  (* Installation prefix. Example: <prefix>/usr/bin/utop -> <prefix> *)
+  let prefix_p = Fpath.(abs_cmd_p |> parent |> parent |> parent) in
   let bc_p = Fpath.(prefix_p / "desktop" / "bc") in
-  let bc_bin_p = Fpath.(bc_p / "bin") in
+  let bc_usr_bin_p = Fpath.(bc_p / "usr" / "bin") in
   let bc_ocaml_lib_p = Fpath.(bc_p / "lib" / "ocaml") in
   let bc_ocaml_stublibs_p = Fpath.(bc_ocaml_lib_p / "stublibs") in
   let bc_stublibs_p = Fpath.(bc_p / "lib" / "stublibs") in
@@ -187,7 +187,9 @@ let set_precompiled_env abs_cmd_p =
       in
       (* Dune requires ocamlc in the PATH. It should already be present
          but just in case put the bytecode executables in the PATH *)
-      let* () = when_dir_exists_prepend_pathlike_env ~envvar:"PATH" bc_bin_p in
+      let* () =
+        when_dir_exists_prepend_pathlike_env ~envvar:"PATH" bc_usr_bin_p
+      in
       Ok ()
   | _ ->
       (* In an Opam switch

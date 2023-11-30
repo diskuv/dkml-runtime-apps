@@ -286,7 +286,14 @@ let set_msvc_entries cache_keys =
           let dash =
             Fpath.(msys2_dir / "usr" / "bin" / "dash.exe" |> to_string)
           in
-          let cmd = Cmd.(v dash % Fpath.to_string tmp_sh_file) in
+          let extra_options =
+            match Logs.level () with
+            | Some Debug -> Cmd.(v "-x")
+            | _ -> Cmd.empty
+          in
+          let cmd =
+            Cmd.(v dash %% extra_options % Fpath.to_string tmp_sh_file)
+          in
           (OS.Cmd.run_status cmd >>= function
            | `Exited status ->
                if status <> 0 then
