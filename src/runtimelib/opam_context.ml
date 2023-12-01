@@ -12,9 +12,10 @@ let fpath_opt_parser =
 
 (** [get_opam_root] is a lazy function that gets the OPAMROOT environment variable.
     If OPAMROOT is not found, then <LOCALAPPDATA>/opam is used for Windows
-    and $XDG_CONFIG_HOME/opam with fallback to ~/.config/opam for Unix instead.
+    and $XDG_CONFIG_HOME/opam with fallback to ~/{.opam|.config/opam} for Unix instead.
 
-    Conforms to https://github.com/ocaml/opam/pull/4815#issuecomment-910137754.
+    Conforms to https://github.com/ocaml/opam/pull/4815#issuecomment-910137754
+    and https://github.com/ocaml/opam/issues/3766.
   *)
 let get_opam_root =
   lazy
@@ -30,8 +31,15 @@ let get_opam_root =
      match (opamroot, localappdata, xdgconfighome, home) with
      | Some opamroot, _, _, _ -> R.ok opamroot
      | _, Some localappdata, _, _ -> R.ok Fpath.(localappdata / "opam")
-     | _, _, Some xdgconfighome, _ -> R.ok Fpath.(xdgconfighome / "opam")
-     | _, _, _, Some home -> R.ok Fpath.(home / ".config" / "opam")
+     (* When DkML upgrades dkml-component-*-opam to opam 2.3, this
+        will need to change <home>/.opam to:
+
+          | _, _, Some xdgconfighome, _ -> R.ok Fpath.(xdgconfighome / "opam")
+          | _, _, _, Some home -> R.ok Fpath.(home / ".config" / "opam")
+
+        CHANGE NOTICE: Also change dkml-runtime-common's [_common_tool.sh]
+        *)
+     | _, _, _, Some home -> R.ok Fpath.(home / ".opam")
      | _, _, _, _ ->
          R.error_msg
            "Unable to locate Opam root because none of LOCALAPPDATA, \
@@ -49,10 +57,10 @@ let get_opam_switch_prefix =
      | None -> Ok Fpath.(opamroot / "playground"))
 
 (** [SystemConfig] is the state of a DkML system after initial installation, and possibly after.
-    
+
     Initial installation does not include the system OCaml compiler, but it may be installed
     after.
-    
+
     MSYS2 is always part of the initial installation on Windows, but is not present on
     Unix. *)
 module SystemConfig = struct
