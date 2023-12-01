@@ -232,7 +232,8 @@ let verify_git ~msg_why_check_git ~what_install =
        2. Re-run this program in a _new_ terminal." msg_why_check_git
       what_install
       (match (Sys.win32, has_winget) with
-      | true, true -> "Run 'winget install Git.Git' to install Git for Windows."
+      | true, true ->
+          "Run:\n     winget install Git.Git\n   to install Git for Windows."
       | true, false ->
           "Download and install Git for Windows from \
            https://gitforwindows.org/."
@@ -410,10 +411,10 @@ let init_nativecode_system ?enable_imprecise_c99_float_ops ?disable_sandboxing
            read-only files like [cache-vsstudio.bat]. *)
         match OS.Dir.delete ~recurse:true temp_dir with
         | Ok () -> ()
-        | Error (`Msg msg) -> (
-          Logs.warn (fun l ->
-              l "Deleting the temporary directory %a failed: %s"
-                Fpath.pp temp_dir msg)))
+        | Error (`Msg msg) ->
+            Logs.warn (fun l ->
+                l "Deleting the temporary directory %a failed: %s" Fpath.pp
+                  temp_dir msg))
     (fun () ->
       let* (_created : bool) = OS.Dir.create temp_dir in
       init_nativecode_system_helper ?enable_imprecise_c99_float_ops
