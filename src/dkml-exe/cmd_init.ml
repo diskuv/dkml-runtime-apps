@@ -72,17 +72,12 @@ let buildtype_t =
     value & opt conv_buildtype Release
     & info [ "b"; "build-type" ] ~doc ~docv ~deprecated)
 
-let create_local_switch ~system_cfg ~scripts_dir_fp ~yes ~non_system_compiler
-    ~localdir_fp =
+let create_local_switch ~system_cfg ~ocaml_home_fp ~scripts_dir_fp ~yes
+    ~non_system_compiler ~localdir_fp =
   (* Assemble command line arguments *)
   let open Dkml_runtimelib.SystemConfig in
   Fpath.of_string "vendor/drd/src/unix/create-opam-switch.sh" >>= fun rel_fp ->
   let create_switch_fp = Fpath.(scripts_dir_fp // rel_fp) in
-  let ocaml_version_option =
-    match system_cfg.ocaml_home_fp_opt with
-    | Some ocaml_home_fp -> Fpath.to_string ocaml_home_fp
-    | None -> system_cfg.ocaml_compiler_version
-  in
   let cmd =
     Cmd.of_list
       (system_cfg.env_exe_wrapper
@@ -98,7 +93,10 @@ let create_local_switch ~system_cfg ~scripts_dir_fp ~yes ~non_system_compiler
           "-m";
           "conf-withdkml";
         ]
-      @ (if non_system_compiler then [] else [ "-v"; ocaml_version_option ])
+      @ (if non_system_compiler then
+           (* Without [-v OCAMLHOME] the [-b BUILDTYPE] is required *)
+           [ "-b"; "Release" ]
+         else [ "-v"; Fpath.to_string ocaml_home_fp ])
       @ (if yes then [ "-y" ] else [])
       @ Dkml_runtimelib.get_msys2_create_opam_switch_options system_cfg.msys2)
   in
@@ -152,22 +150,37 @@ let run f_setup localdir_fp_opt yes non_system_compiler system_only
         localdir_fp_opt
       >>= fun localdir_fp ->
       (* Configuration for creating switches *)
-      Dkml_runtimelib.SystemConfig.create ~scripts_dir_fp ()
-      >>= fun system_cfg ->
+      let* system_cfg =
+        Dkml_runtimelib.SystemConfig.create ~scripts_dir_fp ()
+      in
       (* Initialize system if necessary *)
       let f_temp_dir () = Ok Fpath.(dir_fp // v "is") in
       let f_system_cfg ~temp_dir () =
         ignore temp_dir;
         Ok system_cfg
       in
-      Dkml_runtimelib.init_nativecode_system ?enable_imprecise_c99_float_ops
-        ?disable_sandboxing ~f_temp_dir ~f_system_cfg ()
-      >>= fun ec ->
+      let* ec =
+        Dkml_runtimelib.init_nativecode_system ?enable_imprecise_c99_float_ops
+          ?disable_sandboxing ~f_temp_dir ~f_system_cfg ()
+      in
       if ec <> 0 then exit ec;
-      (* Create local switch *)
+      (* Requery the system because we need the system OCaml home
+         and it might just have been installed above. *)
+      let* system_cfg =
+        Dkml_runtimelib.SystemConfig.create ~scripts_dir_fp ()
+      in
+      let* ocaml_home_fp =
+        match system_cfg.ocaml_home_fp_opt with
+        | Some ocaml_home_fp -> Ok ocaml_home_fp
+        | None ->
+            Rresult.R.error_msgf
+              "Expected OCaml %s to have been installed in %a"
+              system_cfg.ocaml_compiler_version Fpath.pp system_cfg.dkml_home_fp
+      in
+      (* Create local switch.*)
       if system_only then Ok 0
       else
-        create_local_switch ~system_cfg ~scripts_dir_fp ~yes
+        create_local_switch ~system_cfg ~scripts_dir_fp ~ocaml_home_fp ~yes
           ~non_system_compiler ~localdir_fp)
     ()
   >>= function

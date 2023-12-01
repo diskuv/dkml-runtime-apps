@@ -59,6 +59,7 @@ module SystemConfig = struct
   type msys2_t = Msys2_on_windows of Fpath.t | No_msys2_on_unix
 
   type t = {
+    dkml_home_fp : Fpath.t;
     scripts_dir_fp : Fpath.t;
     env_exe_wrapper : string list;
     target_abi : string;
@@ -139,6 +140,7 @@ module SystemConfig = struct
     let* ocaml_home_fp_opt = find_ocaml_home () in
     Ok
       {
+        dkml_home_fp;
         scripts_dir_fp;
         env_exe_wrapper;
         target_abi;
