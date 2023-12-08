@@ -296,6 +296,8 @@ let init_nativecode_system_if_necessary () =
     the [cmdline_a] form of the command line is run.
 
     If the current executable is named ["opam"] and the arguments are of form:
+    * [["--version"]] # used by ocamllsp for switch discovery
+    * [["var"; ...]] # used by ocamllsp for switch discovery
     * [["env"; ...]]
     * [["switch"]]
     * [["switch"; "--some-option"; ...]]
@@ -310,9 +312,11 @@ let init_nativecode_system_if_necessary () =
     executable is named ["XYZ.exe"]. If you distribute binaries all you
     need to do is rename ["dune.exe"] to ["dune-real.exe"] and
     ["with-dkml.exe"] to ["dune.exe"], and the new ["dune.exe"] will behave
-    like the old ["dune.exe"], but will have all the UNIX tools through MSYS
+    like the old ["dune.exe"], but will have all the UNIX tools through MSYS2
     and the MSVC compiler available to it. You can do the same with
-    ["opam.exe"] or any other executable.
+    ["opam.exe"] or any other executable. The [cmdline_c] will auto-install
+    the system OCaml compiler, the global opam root and the playground
+    switch if they are not present.
 
     Special case: If the current executable is a bytecode executable (one of
     ["ocaml"; "down"; "utop"; "utop-full"; "utop"]) and the current executable
@@ -387,6 +391,18 @@ let create_and_setenv_if_necessary ~has_dkml_mutating_ancestor_process () =
     (* CMDLINE_A FORM *)
     | cmd :: args when is_with_dkml_exe cmd -> Ok (env_exe_wrapper @ args)
     (* CMDLINE_B FORM *)
+    | [cmd ; "--version"] when is_opam_exe cmd ->
+        Logs.debug (fun l ->
+            l
+              "Detected [opam --version] invocation. Not using 'env opam --version'.");
+        let* _abs_cmd_p, real_exe = get_abs_cmd_and_real_exe ~opam:() cmd in
+        Ok ([ Fpath.to_string real_exe; "--version" ])
+    | cmd :: "var" :: args when is_opam_exe cmd ->
+        Logs.debug (fun l ->
+            l
+              "Detected [opam var ...] invocation. Not using 'env opam var'");
+        let* _abs_cmd_p, real_exe = get_abs_cmd_and_real_exe ~opam:() cmd in
+        Ok ([ Fpath.to_string real_exe; "var" ] @ args)
     | cmd :: "env" :: args when is_opam_exe cmd ->
         Logs.debug (fun l ->
             l
