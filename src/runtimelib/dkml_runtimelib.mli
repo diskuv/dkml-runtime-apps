@@ -13,6 +13,7 @@ val get_msys2_dir_opt : (Fpath.t option, Rresult.R.msg) result lazy_t
 val get_dkmlhome_dir_opt : (Fpath.t option, Rresult.R.msg) result lazy_t
 val get_dkmlhome_dir_or_default : (Fpath.t, Rresult.R.msg) result lazy_t
 val get_dkmlversion_or_default : (string, Rresult.R.msg) result lazy_t
+val get_opam_root : (Fpath.t, [> Rresult.R.msg ]) result lazy_t
 
 type dkmlmode = Nativecode | Bytecode
 

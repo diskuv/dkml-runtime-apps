@@ -76,7 +76,9 @@ let create_local_switch ~system_cfg ~ocaml_home_fp ~scripts_dir_fp ~yes
     ~non_system_compiler ~localdir_fp =
   (* Assemble command line arguments *)
   let open Dkml_runtimelib.SystemConfig in
+  let ( let* ) = Result.bind in
   Fpath.of_string "vendor/drd/src/unix/create-opam-switch.sh" >>= fun rel_fp ->
+  let* opamroot_dir_fp = Lazy.force Dkml_runtimelib.get_opam_root in
   let create_switch_fp = Fpath.(scripts_dir_fp // rel_fp) in
   let cmd =
     Cmd.of_list
@@ -90,6 +92,8 @@ let create_local_switch ~system_cfg ~ocaml_home_fp ~scripts_dir_fp ~yes
           Fpath.to_string localdir_fp;
           "-o";
           Fpath.to_string system_cfg.opam_home_fp;
+          "-r";
+          Fpath.to_string opamroot_dir_fp;
           "-m";
           "conf-withdkml";
         ]
