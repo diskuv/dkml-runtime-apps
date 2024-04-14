@@ -1,5 +1,10 @@
 # Changes
 
+## 2.1.1
+
+- `src/runtimelib/ocaml_opam_repository_gitref.txt` is used to fix the version
+  of the ocaml/opam-repository used during a `dkml init`.
+
 ## 2.0.0
 
 - Remove `duniverse/` and opam monorepo Makefile targets since dune+shim

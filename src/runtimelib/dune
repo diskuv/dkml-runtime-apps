@@ -5,6 +5,7 @@
    %{target}
    (progn
     (echo "let version = String.trim {|%{read:version.txt}|}\n")
+    (echo "let ocaml_opam_repository_gitref = String.trim {|%{read:ocaml_opam_repository_gitref.txt}|}\n")
     (echo "let ocaml_system = String.trim {|%{system}|}\n")))))
 
 (library

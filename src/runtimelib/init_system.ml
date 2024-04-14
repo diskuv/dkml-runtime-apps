@@ -76,6 +76,8 @@ let create_opam_root ?disable_sandboxing ?reinit ~opamroot_dir_fp ~ocaml_home_fp
           Fpath.to_string opamroot_dir_fp;
           "-v";
           Fpath.to_string ocaml_home_fp;
+          "-c";
+          "git+https://github.com/ocaml/opam-repository.git#" ^ Dkml_config.ocaml_opam_repository_gitref;
         ]
       @ disable_sandboxing_args @ reinit_args)
   in
