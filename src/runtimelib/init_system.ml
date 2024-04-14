@@ -95,9 +95,10 @@ let create_ocaml_home_with_compiler ~system_cfg ~enable_imprecise_c99_float_ops
     match system_cfg.ocaml_compiler_version with
     | "4.12.1" -> Ok "46c947827ec2f6d6da7fe5e195ae5dda1d2ad0c5"
     | "4.14.0" -> Ok "15553b77175270d987058b386d737ccb939e8d5a"
+    | "4.14.2" -> Ok "8eb41f72ded84df884c3671734c947f612091f84"
     | _ ->
         Rresult.R.error_msgf
-          "Only 4.12.1 and 4.14.0 are supported DkML versions, not %s"
+          "Only 4.12.1, 4.14.0 and 4.14.2 are supported DkML versions, not %s"
           system_cfg.ocaml_compiler_version
   in
   let install_compiler_fp = Fpath.(system_cfg.scripts_dir_fp // rel_fp) in

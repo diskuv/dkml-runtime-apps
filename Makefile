@@ -29,10 +29,11 @@ endif
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 #	[important packages]
-#		ocaml.4.14.0: So works with DkML 2.0.0 on Windows
+#		ocaml.4.14.2: So works with DkML 2.1.1 on Windows
 #	[packages that must be pinned as well to propagate into Opam Monorepo .locked files]
+#	[edit 1: now unnecessary since no Opam Monorepo .locked files]
 #		dune.3.8.3: So works with DkML 2.0.0 on Windows
-VERSION_OCAML = 4.14.0
+VERSION_OCAML = 4.14.2
 VERSION_DUNE = 3.8.3
 
 SWITCH_ARTIFACTS = _opam/.opam-switch/switch-config
