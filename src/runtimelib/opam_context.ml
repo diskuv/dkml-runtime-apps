@@ -161,7 +161,7 @@ end
 
 let get_msys2_create_opam_switch_options = function
   | SystemConfig.No_msys2_on_unix -> []
-  | SystemConfig.Msys2_on_windows msys2_dir ->
+  | SystemConfig.Msys2_on_windows _msys2_dir ->
       (*
        MSYS2 sets PKG_CONFIG_SYSTEM_{INCLUDE,LIBRARY}_PATH which causes
        native Windows pkgconf to not see MSYS2 packages.
@@ -172,14 +172,8 @@ let get_msys2_create_opam_switch_options = function
 
        Replicated (and need to change if these change):
        [dkml/packaging/version-bump/upsert-dkml-switch.in.sh]
-       [dkml-component-ocamlcompiler/assets/staging-files/win32/setup-userprofile.ps1]
-    *)
+       [diskuv-opam-repository/packages/msys2/msys2.0.1.0+dkml/opam]
+      *)
       [
-        "-e";
-        Fmt.str "PKG_CONFIG_PATH=%a" Fpath.pp
-          Fpath.(msys2_dir / "clang64" / "lib" / "pkgconfig");
-        "-e";
-        "PKG_CONFIG_SYSTEM_INCLUDE_PATH=";
-        "-e";
-        "PKG_CONFIG_SYSTEM_LIBRARY_PATH=";
+        "-m"; "msys2-clang64";
       ]
