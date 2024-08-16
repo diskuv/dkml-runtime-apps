@@ -21,9 +21,9 @@ let setup () =
   (* Setup MSYS2 *)
   Rresult.R.error_to_msg ~pp_error:Fmt.string
     (Dkml_c_probe.C_abi.V2.get_abi_name ())
-  >>= fun target_platform_name ->
-  Dkml_runtimelib.Dkml_environment.set_msys2_entries ~has_dkml_mutating_ancestor_process:false
-    target_platform_name
+  >>= fun target_abi ->
+  Dkml_runtimelib.Dkml_environment.set_msys2_entries
+    ~has_dkml_mutating_ancestor_process:false ~target_abi
   >>= fun () ->
   (* Diagnostics *)
   OS.Env.current () >>= fun current_env ->

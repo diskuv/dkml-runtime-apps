@@ -582,7 +582,7 @@ let main_with_result () =
   let* () =
     match dkmlmode with
     | Nativecode ->
-        set_msys2_entries ~has_dkml_mutating_ancestor_process target_abi
+        set_msys2_entries ~has_dkml_mutating_ancestor_process ~target_abi
     | Bytecode -> Ok ()
   in
   let* () =

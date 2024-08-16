@@ -55,10 +55,77 @@ let prune_path_of_msys2 prefix =
          && not (ends_with ("\\MSYS2\\" ^ prefix ^ "\\bin")))
   |> fun paths -> Some (String.concat ~sep:";" paths) |> OS.Env.set_var "PATH"
 
+type msys2_config = {
+  opam_host_arch : string;
+      (** The ["host-arch-*"] opam package. Example: {{:https://v3.ocaml.org/p/host-arch-x86_64/latest}https://v3.ocaml.org/p/host-arch-x86_64/latest}*)
+  msystem : string;
+  msystem_carch : string;
+  msystem_chost : string;
+  msystem_prefix : string;
+  mingw_chost : string;
+  mingw_prefix : string;
+  mingw_package_prefix : string;
+}
+
+(** [get_msys2_environment target_abi] gets the DkML environment for the DkML
+    ABI [target_abi].
+    
+    See {{:https://github.com/msys2/MSYS2-packages/blob/1ff9c79a6b6b71492c4824f9888a15314b85f5fa/filesystem/msystem}MSYS2-packages/filesystem/msystem}
+    and {{:https://www.msys2.org/docs/environments/}MSYS2 Environments} for the magic values.
+
+    + MSYSTEM = MINGW32 or CLANG64
+    + MSYSTEM_CARCH, MSYSTEM_CHOST, MSYSTEM_PREFIX
+    + MINGW_CHOST, MINGW_PREFIX, MINGW_PACKAGE_PREFIX
+
+    {3 32 bit notes}
+
+    There is no 32-bit MSYS2 tooling (well, 32-bit was deprecated), but you don't need 32-bit
+    MSYS2 binaries; just a 32-bit (cross-)compiler.
+
+    We should use CLANG32, but it is still experimental as of 2022-05-11.
+    So we use MINGW32.
+
+    Confer: {{:https://issuemode.com/issues/msys2/MINGW-packages/18837088}https://issuemode.com/issues/msys2/MINGW-packages/18837088}
+*)
+let get_msys2_environment ~target_abi =
+  let cfg c0 c1 c2 c3 c4 c5 c6 c7 =
+    Ok
+      {
+        opam_host_arch = c0;
+        msystem = c1;
+        msystem_carch = c2;
+        msystem_chost = c3;
+        msystem_prefix = c4;
+        mingw_chost = c5;
+        mingw_prefix = c6;
+        mingw_package_prefix = c7;
+      }
+  in
+  (* Replicated (and need to change if these change):
+     [dkml-runtime-apps/src/runtimelib/dkml_environment.ml]
+     [dkml/packaging/version-bump/upsert-dkml-switch.in.sh]
+  *)
+  match target_abi with
+  | "windows_x86" ->
+      cfg "host-arch-x86_32" "MINGW32" "i686" "i686-w64-mingw32" "mingw32"
+        "i686-w64-mingw32" "mingw32" "mingw-w64-i686"
+  | "windows_x86_64" ->
+      cfg "host-arch-x86_64" "CLANG64" "x86_64" "x86_64-w64-mingw32" "clang64"
+        "x86_64-w64-mingw32" "clang64" "mingw-w64-clang-x86_64"
+  | "windows_arm64" ->
+      cfg "host-arch-arm64" "CLANGARM64" "aarch64" "aarch64-w64-mingw32"
+        "clangarm64" "aarch64-w64-mingw32" "clangarm64"
+        "mingw-w64-clang-aarch64"
+  | _ ->
+      Error
+        (`Msg
+          ("The target platform name '" ^ target_abi
+         ^ "' is not a supported Windows platform"))
+
 (** Set the MSYSTEM environment variable to MSYS and place MSYS2 binaries at the front of the PATH.
     Any existing MSYS2 binaries in the PATH will be removed.
   *)
-let set_msys2_entries ~has_dkml_mutating_ancestor_process target_platform_name =
+let set_msys2_entries ~has_dkml_mutating_ancestor_process ~target_abi =
   Lazy.force get_msys2_dir_opt >>= function
   | None -> R.ok ()
   | Some msys2_dir ->
@@ -79,44 +146,17 @@ let set_msys2_entries ~has_dkml_mutating_ancestor_process target_platform_name =
           So we use MINGW32.
           Confer: https://issuemode.com/issues/msys2/MINGW-packages/18837088
       *)
-      (match target_platform_name with
-      | "windows_x86" ->
-          R.ok
-            ( "MINGW32",
-              "i686",
-              "i686-w64-mingw32",
-              "mingw32",
-              "i686-w64-mingw32",
-              "mingw32",
-              "mingw-w64-i686" )
-      | "windows_x86_64" ->
-          R.ok
-            ( "CLANG64",
-              "x86_64",
-              "x86_64-w64-mingw32",
-              "clang64",
-              "x86_64-w64-mingw32",
-              "clang64",
-              "mingw-w64-clang-x86_64" )
-      | "windows_arm64" ->
-          R.ok
-            ( "CLANGARM64",
-              "aarch64",
-              "aarch64-w64-mingw32",
-              "clangarm64",
-              "aarch64-w64-mingw32",
-              "clangarm64",
-              "mingw-w64-clang-aarch64" )
-      | _ ->
-          R.error_msg @@ "The target platform name '" ^ target_platform_name
-          ^ "' is not a supported Windows platform")
-      >>= fun ( msystem,
-                msystem_carch,
-                msystem_chost,
-                msystem_prefix,
-                mingw_chost,
-                mingw_prefix,
-                mingw_package_prefix ) ->
+      get_msys2_environment ~target_abi
+      >>= fun {
+                opam_host_arch = _;
+                msystem;
+                msystem_carch;
+                msystem_chost;
+                msystem_prefix;
+                mingw_chost;
+                mingw_prefix;
+                mingw_package_prefix;
+              } ->
       OS.Env.set_var "MSYSTEM" (Some msystem) >>= fun () ->
       OS.Env.set_var "MSYSTEM_CARCH" (Some msystem_carch) >>= fun () ->
       OS.Env.set_var "MSYSTEM_CHOST" (Some msystem_chost) >>= fun () ->

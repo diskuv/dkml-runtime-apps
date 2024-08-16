@@ -38,7 +38,7 @@ let get_opam_root =
           | _, _, _, Some home -> R.ok Fpath.(home / ".config" / "opam")
 
         CHANGE NOTICE: Also change dkml-runtime-common's [_common_tool.sh]
-        *)
+     *)
      | _, _, _, Some home -> R.ok Fpath.(home / ".opam")
      | _, _, _, _ ->
          R.error_msg
@@ -64,7 +64,9 @@ let get_opam_switch_prefix =
     MSYS2 is always part of the initial installation on Windows, but is not present on
     Unix. *)
 module SystemConfig = struct
-  type msys2_t = Msys2_on_windows of Fpath.t | No_msys2_on_unix
+  type msys2_t =
+    | Msys2_on_windows of Fpath.t * Dkml_environment.msys2_config
+    | No_msys2_on_unix
 
   type t = {
     dkml_home_fp : Fpath.t;
@@ -128,7 +130,10 @@ module SystemConfig = struct
     let* msys2 =
       if Sys.win32 then
         let* msys2_dir = Lazy.force Dkml_context.get_msys2_dir in
-        Ok (Msys2_on_windows msys2_dir)
+        let* msys2_config =
+          Dkml_environment.get_msys2_environment ~target_abi
+        in
+        Ok (Msys2_on_windows (msys2_dir, msys2_config))
       else Ok No_msys2_on_unix
     in
     (* Figure out OPAMHOME which is the DkML home directory as long as it contains the bin/opam *)
@@ -161,19 +166,14 @@ end
 
 let get_msys2_create_opam_switch_options = function
   | SystemConfig.No_msys2_on_unix -> []
-  | SystemConfig.Msys2_on_windows _msys2_dir ->
-      (*
-       MSYS2 sets PKG_CONFIG_SYSTEM_{INCLUDE,LIBRARY}_PATH which causes
-       native Windows pkgconf to not see MSYS2 packages.
-
-       Confer:
-       https://github.com/pkgconf/pkgconf#compatibility-with-pkg-config
-       https://github.com/msys2/MSYS2-packages/blob/f953d15d0ede1dfb8656a8b3e27c2b694fa1e9a7/filesystem/profile#L54-L55
-
-       Replicated (and need to change if these change):
-       [dkml/packaging/version-bump/upsert-dkml-switch.in.sh]
-       [diskuv-opam-repository/packages/msys2/msys2.0.1.0+dkml/opam]
-      *)
+  | SystemConfig.Msys2_on_windows
+      (_msys2_dir, { opam_host_arch; msystem_prefix; _ }) ->
+      (* opam 2.2+ uses msys2-* and arch-* opam packages. *)
       [
-        "-m"; "msys2-clang64";
+        (* Ex. msys2-clang64 *)
+        "-m";
+        "msys2-" ^ msystem_prefix;
+        (* Ex. host-arch-x86_32 *)
+        "-m";
+        opam_host_arch;
       ]
