@@ -9,6 +9,22 @@
      "let ocaml_opam_repository_gitref = String.trim {|%{read:ocaml_opam_repository_gitref.txt}|}\n")
     (echo "let ocaml_system = String.trim {|%{system}|}\n")))))
 
+(rule
+ (target crossplat.ml)
+ (deps
+  (:cf "%{lib:dkml-runtime-common:unix/crossplatform-functions.sh}"))
+ (action
+  (progn
+   (system "mkdir crossplat")
+   (no-infer
+    (copy %{cf} crossplat/crossplatform-functions.sh))
+   (run
+    %{bin:ocaml-crunch}
+    "--mode=plain"
+    "--output=%{target}"
+    "--ext=sh"
+    "crossplat"))))
+
 (library
  (name dkml_runtimelib)
  (public_name dkml-runtimelib)
@@ -16,8 +32,14 @@
   dkml-c-probe
   astring
   bos
+  digestif.c
+  digestif
   fmt
+  fmt.cli
+  fmt.tty
   fpath
+  logs.cli
+  logs.fmt
   sexplib
   ptime
   ptime.clock.os

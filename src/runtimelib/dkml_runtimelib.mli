@@ -1,5 +1,6 @@
 module Dkml_environment = Dkml_environment
 module Dkml_news = Dkml_news
+module Dkml_use = Dkml_use
 
 module SystemConfig = Opam_context.SystemConfig
 
@@ -8,7 +9,6 @@ module Monadic_operators : sig
   val ( >>| ) : ('a -> 'b) -> ('a, 'c) result -> ('b, 'c) result
 end
 
-val int_parser : int Bos.OS.Env.parser
 val version : string
 val get_vsstudio_dir_opt : (Fpath.t option, Rresult.R.msg) result lazy_t
 val get_msys2_dir_opt : (Fpath.t option, Rresult.R.msg) result lazy_t

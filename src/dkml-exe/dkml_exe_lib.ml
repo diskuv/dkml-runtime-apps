@@ -12,8 +12,8 @@ let initialized_t =
         let open Bos in
         let dbt = OS.Env.value "DKML_BUILD_TRACE" OS.Env.string ~absent:"OFF" in
         let dbtl =
-          OS.Env.value "DKML_BUILD_TRACE_LEVEL" Dkml_runtimelib.int_parser
-            ~absent:0
+          OS.Env.value "DKML_BUILD_TRACE_LEVEL"
+            Dkml_runtimelib.Dkml_environment.int_parser ~absent:0
         in
         (match dbt with
         | "ON" when dbtl >= 2 -> Logs.set_level (Some Logs.Debug)

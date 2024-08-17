@@ -210,3 +210,5 @@ let env_exe_wrapper () =
   | Some msys2_dir, _ ->
       Logs.debug (fun m -> m "MSYS2 directory: %a" Fpath.pp msys2_dir);
       Ok [ Fpath.(msys2_dir / "usr" / "bin" / "env.exe" |> to_string) ]
+
+let int_parser = OS.Env.(parser "int" String.to_int)

@@ -61,9 +61,9 @@ let is_with_dkml_exe filename =
     *)
 let is_bytecode_exe path =
   let ( let* ) = Rresult.R.( >>= ) in
-  let* mode = Lazy.force Dkml_runtimelib.get_dkmlmode_or_default in
+  let* mode = Lazy.force Dkml_context.get_dkmlmode_or_default in
   Logs.debug (fun l ->
-      l "Detected DiskuvOCamlMode = %a" Dkml_runtimelib.pp_dkmlmode mode);
+      l "Detected DiskuvOCamlMode = %a" Dkml_context.pp_dkmlmode mode);
   let execs =
     [ "down"; "ocaml"; "ocamlc"; "ocamlcp"; "ocamlfind"; "utop"; "utop-full" ]
   in
@@ -226,7 +226,7 @@ let set_enduser_env abs_cmd_p =
 
 let blurb () =
   let ( let* ) = Result.bind in
-  let* version = Lazy.force Dkml_runtimelib.get_dkmlversion_or_default in
+  let* version = Lazy.force Dkml_context.get_dkmlversion_or_default in
   Format.eprintf
     {|DkML %-49s https://diskuv.com/dkmlbook/
 DkSDK%-49s https://diskuv.com/pricing
@@ -250,7 +250,7 @@ let setup_nativecode_env ~abs_cmd_p =
          to have install-time findlib configuration");
   set_enduser_env abs_cmd_p
 
-let init_nativecode_system_if_necessary () =
+let init_nativecode_system_if_necessary ~extract_dkml_scripts () =
   let ( let* ) = Result.bind in
   (* Initialize the native code system.
 
@@ -258,7 +258,7 @@ let init_nativecode_system_if_necessary () =
      out-of-the-box. If the user wants something different, they
      can do [dkml init --system <options>] before. *)
   let* () =
-    let* dkmlversion = Lazy.force Dkml_runtimelib.get_dkmlversion_or_default in
+    let* dkmlversion = Lazy.force Dkml_context.get_dkmlversion_or_default in
     let f_temp_dir () =
       (* Caution: Never use the current opam switch to store the temp dir
          because it can be erased if [opam = with-dkml] and [opam remove <current switch>].
@@ -269,14 +269,12 @@ let init_nativecode_system_if_necessary () =
     let f_system_cfg ~temp_dir () =
       (* Extract all DkML scripts into scripts_dir_fp using installed dkmlversion. *)
       let scripts_dir_fp = Fpath.(temp_dir // v "scripts") in
-      let* () =
-        Dkml_runtimescripts.extract_dkml_scripts ~dkmlversion scripts_dir_fp
-      in
+      let* () = extract_dkml_scripts ~dkmlversion scripts_dir_fp in
       (* Now we finish gathering information to create switches *)
-      Dkml_runtimelib.SystemConfig.create ~scripts_dir_fp ()
+      Opam_context.SystemConfig.create ~scripts_dir_fp ()
     in
     let* ec =
-      Dkml_runtimelib.init_nativecode_system ~disable_sandboxing:()
+      Init_system.init_nativecode_system ~disable_sandboxing:()
         ~delete_temp_dir_after_init:() ~f_temp_dir ~f_system_cfg ()
     in
     if ec = 0 then Ok () else Error (`Msg "Program interrupted")
@@ -330,10 +328,11 @@ let init_nativecode_system_if_necessary () =
     the PATH on Windows (or LD_LIBRARY_PATH on Unix) if the directories exist.
     4. If ["ocaml"], ["utop"] or ["utop-full"] they are launched using ["ocamlrun"]
 *)
-let create_and_setenv_if_necessary ~has_dkml_mutating_ancestor_process () =
+let create_and_setenv_if_necessary ~has_dkml_mutating_ancestor_process
+    ~extract_dkml_scripts () =
   let ( let* ) = Rresult.R.( >>= ) in
   let ( let+ ) = Rresult.R.( >>| ) in
-  let* env_exe_wrapper = Dkml_runtimelib.Dkml_environment.env_exe_wrapper () in
+  let* env_exe_wrapper = Dkml_environment.env_exe_wrapper () in
   let get_authoritative_opam_exe () =
     match Lazy.force find_authoritative_opam_exe with
     | Some authoritative_opam_exe ->
@@ -391,16 +390,16 @@ let create_and_setenv_if_necessary ~has_dkml_mutating_ancestor_process () =
     (* CMDLINE_A FORM *)
     | cmd :: args when is_with_dkml_exe cmd -> Ok (env_exe_wrapper @ args)
     (* CMDLINE_B FORM *)
-    | [cmd ; "--version"] when is_opam_exe cmd ->
+    | [ cmd; "--version" ] when is_opam_exe cmd ->
         Logs.debug (fun l ->
             l
-              "Detected [opam --version] invocation. Not using 'env opam --version'.");
+              "Detected [opam --version] invocation. Not using 'env opam \
+               --version'.");
         let* _abs_cmd_p, real_exe = get_abs_cmd_and_real_exe ~opam:() cmd in
-        Ok ([ Fpath.to_string real_exe; "--version" ])
+        Ok [ Fpath.to_string real_exe; "--version" ]
     | cmd :: "var" :: args when is_opam_exe cmd ->
         Logs.debug (fun l ->
-            l
-              "Detected [opam var ...] invocation. Not using 'env opam var'");
+            l "Detected [opam var ...] invocation. Not using 'env opam var'");
         let* _abs_cmd_p, real_exe = get_abs_cmd_and_real_exe ~opam:() cmd in
         Ok ([ Fpath.to_string real_exe; "var" ] @ args)
     | cmd :: "env" :: args when is_opam_exe cmd ->
@@ -471,7 +470,8 @@ let create_and_setenv_if_necessary ~has_dkml_mutating_ancestor_process () =
               (* never init system when perhaps we are already initting system *)
               Ok ()
           | false, true -> Ok ()
-          | false, false -> init_nativecode_system_if_necessary ()
+          | false, false ->
+              init_nativecode_system_if_necessary ~extract_dkml_scripts ()
         in
         Ok
           (env_exe_wrapper @ extra_wrappers
