@@ -23,7 +23,4 @@ let () =
   exit
     (Cmd.eval
        (Cmd.group ~default:main_t (Cmd.info "dkml")
-          [
-            Cmd.v (version_info ~description:"DkML") version_t;
-            Cmd.v init_info init_t;
-          ]))
+          [ version_cmd ~description:"DkML"; init_cmd; news_cmd ]))

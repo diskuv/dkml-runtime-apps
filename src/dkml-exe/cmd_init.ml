@@ -116,8 +116,8 @@ let create_local_switch ~system_cfg ~ocaml_home_fp ~scripts_dir_fp ~yes
       (* https://stackoverflow.com/questions/1101957/are-there-any-standard-exit-status-codes-in-linux/1535733#1535733 *)
       Ok (128 + signal)
 
-let run f_setup localdir_fp_opt yes non_system_compiler system_only
-    enable_imprecise_c99_float_ops disable_sandboxing =
+let run (_ : [ `Initialized ]) f_setup localdir_fp_opt yes non_system_compiler
+    system_only enable_imprecise_c99_float_ops disable_sandboxing =
   let ( let* ) = Result.bind in
   let* (_has_dkml_mutating_ancestor_process : bool) =
     Dkml_runtimelib.Dkml_environment.mark_dkml_mutating_ancestor_process ()
