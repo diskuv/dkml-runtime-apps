@@ -22,5 +22,9 @@ let () =
   let open Cmdliner in
   exit
     (Cmd.eval
-       (Cmd.group ~default:main_t (Cmd.info "dkml")
-          [ deprecated_version_cmd; deprecated_init_cmd ]))
+       (Cmd.group ~default:main_t (Cmd.info "dk")
+          [
+            ml_version_cmd ~description:"DkML command launcher";
+            ml_switch_cmd;
+            ml_news_cmd;
+          ]))

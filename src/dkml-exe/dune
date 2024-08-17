@@ -1,7 +1,8 @@
 (library
  (name dkml_exe_lib)
  (public_name dkml-exe-lib)
- (modules (:standard \ dkml_exe))
+ (modules
+  (:standard \ dkml_exe dk_exe))
  (libraries
   ; opam-client ... so sad that we don't have it (actually dose3.5.0.1-1) working yet for MSVC!
   dkml_runtimescripts
@@ -14,6 +15,13 @@
   fmt.cli
   fmt.tty
   cmdliner))
+
+(executable
+ (name dk_exe)
+ (public_name dk)
+ (package dkml-exe)
+ (modules dk_exe)
+ (libraries dkml-exe-lib))
 
 (executable
  (name dkml_exe)
