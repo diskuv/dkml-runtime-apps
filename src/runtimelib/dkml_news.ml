@@ -36,8 +36,9 @@ end
 
 let show (_ : [ `Initialized ]) =
   let uri =
+    (* motd = message of the day *)
     Uri.of_string
-      (Printf.sprintf "https://diskuv.com/news/motd/dkml/%s" Dkml_config.version)
+      (Printf.sprintf "https://diskuv.com/news/motd/%s" Dkml_config.version)
   in
   let os =
     match Dkml_c_probe.C_abi.V3.get_os () with
