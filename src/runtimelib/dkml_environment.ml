@@ -103,7 +103,7 @@ let get_msys2_environment ~target_abi =
   in
   (* Replicated (and need to change if these change):
      [dkml-runtime-apps/src/runtimelib/dkml_environment.ml]
-     [dkml/packaging/version-bump/upsert-dkml-switch.in.sh]
+     [dkml/pkg/bump/CMakeLists.txt]
   *)
   match target_abi with
   | "windows_x86" ->
