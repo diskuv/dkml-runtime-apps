@@ -3,6 +3,7 @@ include Opam_context
 module Dkml_environment = Dkml_environment
 module Dkml_news = Dkml_news
 module Dkml_use = Dkml_use
+module Dkml_cli = Dkml_cli
 module SystemConfig = Opam_context.SystemConfig
 
 module Monadic_operators = struct

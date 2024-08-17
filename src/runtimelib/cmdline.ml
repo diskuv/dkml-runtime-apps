@@ -328,8 +328,8 @@ let init_nativecode_system_if_necessary ~extract_dkml_scripts () =
     the PATH on Windows (or LD_LIBRARY_PATH on Unix) if the directories exist.
     4. If ["ocaml"], ["utop"] or ["utop-full"] they are launched using ["ocamlrun"]
 *)
-let create_and_setenv_if_necessary ~has_dkml_mutating_ancestor_process
-    ~extract_dkml_scripts () =
+let create_and_setenv_if_necessary ~(mode : [ `Direct | `WithDkml ]) ~argv
+    ~has_dkml_mutating_ancestor_process ~extract_dkml_scripts () =
   let ( let* ) = Rresult.R.( >>= ) in
   let ( let+ ) = Rresult.R.( >>| ) in
   let* env_exe_wrapper = Dkml_environment.env_exe_wrapper () in
@@ -386,37 +386,39 @@ let create_and_setenv_if_necessary ~has_dkml_mutating_ancestor_process
     Ok (abs_cmd_p, real_exe)
   in
   let+ cmd_and_args =
-    match Array.to_list Sys.argv with
+    match (mode, argv) with
     (* CMDLINE_A FORM *)
-    | cmd :: args when is_with_dkml_exe cmd -> Ok (env_exe_wrapper @ args)
+    | `Direct, args -> Ok (env_exe_wrapper @ args)
+    | `WithDkml, cmd :: args when is_with_dkml_exe cmd ->
+        Ok (env_exe_wrapper @ args)
     (* CMDLINE_B FORM *)
-    | [ cmd; "--version" ] when is_opam_exe cmd ->
+    | `WithDkml, [ cmd; "--version" ] when is_opam_exe cmd ->
         Logs.debug (fun l ->
             l
               "Detected [opam --version] invocation. Not using 'env opam \
                --version'.");
         let* _abs_cmd_p, real_exe = get_abs_cmd_and_real_exe ~opam:() cmd in
         Ok [ Fpath.to_string real_exe; "--version" ]
-    | cmd :: "var" :: args when is_opam_exe cmd ->
+    | `WithDkml, cmd :: "var" :: args when is_opam_exe cmd ->
         Logs.debug (fun l ->
             l "Detected [opam var ...] invocation. Not using 'env opam var'");
         let* _abs_cmd_p, real_exe = get_abs_cmd_and_real_exe ~opam:() cmd in
         Ok ([ Fpath.to_string real_exe; "var" ] @ args)
-    | cmd :: "env" :: args when is_opam_exe cmd ->
+    | `WithDkml, cmd :: "env" :: args when is_opam_exe cmd ->
         Logs.debug (fun l ->
             l
               "Detected [opam env ...] invocation. Not using 'env opam env' so \
                Opam can discover the parent shell");
         let* _abs_cmd_p, real_exe = get_abs_cmd_and_real_exe ~opam:() cmd in
         Ok ([ Fpath.to_string real_exe; "env" ] @ args)
-    | [ cmd; "switch" ] when is_opam_exe cmd ->
+    | `WithDkml, [ cmd; "switch" ] when is_opam_exe cmd ->
         Logs.debug (fun l ->
             l
               "Detected [opam switch] invocation. Not using 'env opam switch' \
                so Opam can discover the parent shell");
         let* _abs_cmd_p, real_exe = get_abs_cmd_and_real_exe ~opam:() cmd in
         Ok [ Fpath.to_string real_exe; "switch" ]
-    | cmd :: "switch" :: first_arg :: rest_args
+    | `WithDkml, cmd :: "switch" :: first_arg :: rest_args
       when is_opam_exe cmd
            && String.length first_arg > 2
            && String.is_prefix ~affix:"--" first_arg ->
@@ -426,7 +428,7 @@ let create_and_setenv_if_necessary ~has_dkml_mutating_ancestor_process
                'env opam switch' so Opam can discover the parent shell");
         let* _abs_cmd_p, real_exe = get_abs_cmd_and_real_exe ~opam:() cmd in
         Ok ([ Fpath.to_string real_exe; "switch"; first_arg ] @ rest_args)
-    | cmd :: "switch" :: "list" :: args when is_opam_exe cmd ->
+    | `WithDkml, cmd :: "switch" :: "list" :: args when is_opam_exe cmd ->
         Logs.debug (fun l ->
             l
               "Detected [opam switch list ...] invocation. Not using 'env opam \
@@ -434,7 +436,7 @@ let create_and_setenv_if_necessary ~has_dkml_mutating_ancestor_process
         let* _abs_cmd_p, real_exe = get_abs_cmd_and_real_exe ~opam:() cmd in
         Ok ([ Fpath.to_string real_exe; "switch"; "list" ] @ args)
     (* CMDLINE_C FORM *)
-    | cmd :: args ->
+    | `WithDkml, cmd :: args ->
         let opam = if is_opam_exe cmd then Some () else None in
         let* () = if is_blurb_exe cmd && args = [] then blurb () else Ok () in
         let* abs_cmd_p, real_exe = get_abs_cmd_and_real_exe ?opam cmd in

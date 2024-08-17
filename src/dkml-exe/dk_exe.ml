@@ -27,4 +27,5 @@ let () =
             ml_version_cmd ~description:"DkML command launcher";
             ml_switch_cmd;
             ml_news_cmd;
+            ml_use_cmd;
           ]))

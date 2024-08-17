@@ -15,9 +15,22 @@ To test DKML_3P_PROGRAM_PATH or DKML_3P_PREFIX_PATH:
 let usage_msg = "with-dkml.exe CMD [ARGS...]\n"
 
 let () =
+  (* Why don't we use cmdliner? Because we don't want cmdliner parsing
+     the arguments, especially for the zillions of Unix programs where
+     the command line arguments will be misinterpreted by cmdliner.
+
+     Ex. `-h` is help for cmdliner but human sortable for `sort`.
+
+     Ex. `dk Ml.Use bash -v` sets the verbose options for Ml.Use, not bash.
+     You have to do `dk Ml.Use -- bash -v` to set the verbose option for bash.
+
+     So always use `with-dkml` executable as the **shim** for opam, dune,
+     etc. rather than `dk Ml.Use`. For all other uses `dk Ml.Use` is better. *)
   match
-    Dkml_runtimelib.Dkml_use.do_use
-      ~extract_dkml_scripts:Dkml_runtimescripts.extract_dkml_scripts ()
+    Dkml_runtimelib.Dkml_use.do_use ~mode:`WithDkml
+      ~argv:(Array.to_list Sys.argv)
+      ~extract_dkml_scripts:Dkml_runtimescripts.extract_dkml_scripts
+      `Uninitialized
   with
   | Ok _ -> ()
   | Error msg ->

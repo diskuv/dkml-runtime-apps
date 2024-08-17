@@ -3,27 +3,6 @@ module Arg = Cmdliner.Arg
 module Cmd = Cmdliner.Cmd
 module Term = Cmdliner.Term
 
-let initialized_t =
-  let renderer_t = Fmt_cli.style_renderer ~docs:"COMMON OPTIONS" () in
-  let logs_t = Logs_cli.level ~docs:"COMMON OPTIONS" () in
-  Term.(
-    const (fun style_renderer logs ->
-        Fmt_tty.setup_std_outputs ?style_renderer ();
-        let open Bos in
-        let dbt = OS.Env.value "DKML_BUILD_TRACE" OS.Env.string ~absent:"OFF" in
-        let dbtl =
-          OS.Env.value "DKML_BUILD_TRACE_LEVEL"
-            Dkml_runtimelib.Dkml_environment.int_parser ~absent:0
-        in
-        (match dbt with
-        | "ON" when dbtl >= 2 -> Logs.set_level (Some Logs.Debug)
-        | "ON" when dbtl >= 1 -> Logs.set_level (Some Logs.Info)
-        | "ON" when dbtl >= 0 -> Logs.set_level (Some Logs.Warning)
-        | _ -> Logs.set_level logs);
-        Logs.set_reporter (Logs_fmt.reporter ());
-        `Initialized)
-    $ renderer_t $ logs_t)
-
 let setup () =
   let open Bos in
   (* Setup MSYS2 *)
@@ -69,6 +48,7 @@ let deprecated_message ~old ~new_ =
 
 let show_we_are_deprecated ~old ~new_ =
   prerr_endline (deprecated_message ~old ~new_);
+  prerr_endline "The program will proceed after 15 seconds ...";
   flush stderr;
   Unix.sleep 15
 
@@ -101,9 +81,9 @@ let switch_init_t ~setup =
   Term.ret
     Term.(
       const rresult_to_term_result
-      $ (const Cmd_init.run $ initialized_t $ const setup $ localdir_opt_t
-       $ yes_t $ Cmd_init.non_system_compiler_t $ Cmd_init.system_only_t
-       $ Cmd_init.enable_imprecise_c99_float_ops_t
+      $ (const Cmd_init.run $ Dkml_runtimelib.Dkml_cli.initialized_t
+       $ const setup $ localdir_opt_t $ yes_t $ Cmd_init.non_system_compiler_t
+       $ Cmd_init.system_only_t $ Cmd_init.enable_imprecise_c99_float_ops_t
        $ Cmd_init.disable_sandboxing_t))
 
 let deprecated_init_cmd =
@@ -140,7 +120,10 @@ let ml_switch_cmd =
     (Cmd.info ~doc:"Create an opam switch." "Ml.Switch")
     [ switch_init_cmd ]
 
-let news_show_t = Term.(const Dkml_runtimelib.Dkml_news.show $ initialized_t)
+let news_show_t =
+  Term.(
+    const Dkml_runtimelib.Dkml_news.show
+    $ Dkml_runtimelib.Dkml_cli.initialized_t)
 
 let news_show_cmd =
   let info = Cmd.info ~doc:"Show the current DkML news." "show" in
@@ -155,7 +138,8 @@ let news_maybe_cmd =
   in
   let t =
     Term.(
-      const Dkml_runtimelib.Dkml_news.show_and_update_if_expired $ initialized_t)
+      const Dkml_runtimelib.Dkml_news.show_and_update_if_expired
+      $ Dkml_runtimelib.Dkml_cli.initialized_t)
   in
   Cmd.v info t
 
@@ -163,14 +147,22 @@ let news_disable_cmd =
   let info =
     Cmd.info ~doc:"Disable the bi-weekly showing of DkML news." "disable"
   in
-  let t = Term.(const Dkml_runtimelib.Dkml_news.disable $ initialized_t) in
+  let t =
+    Term.(
+      const Dkml_runtimelib.Dkml_news.disable
+      $ Dkml_runtimelib.Dkml_cli.initialized_t)
+  in
   Cmd.v info t
 
 let news_enable_cmd =
   let info =
     Cmd.info ~doc:"Re-enable the bi-weekly showing of DkML news." "enable"
   in
-  let t = Term.(const Dkml_runtimelib.Dkml_news.reenable $ initialized_t) in
+  let t =
+    Term.(
+      const Dkml_runtimelib.Dkml_news.reenable
+      $ Dkml_runtimelib.Dkml_cli.initialized_t)
+  in
   Cmd.v info t
 
 let ml_news_cmd =
@@ -178,7 +170,43 @@ let ml_news_cmd =
     (Cmd.info ~doc:"Show and enable the DkML news." "Ml.News")
     [ news_show_cmd; news_maybe_cmd; news_disable_cmd; news_enable_cmd ]
 
+let ml_use_cmd =
+  let info =
+    Cmd.info
+      ~man:
+        [
+          `P "Experimental.";
+          `P
+            "The command `$(b,dk Ml.Use bash)` will enter a Bash shell. On \
+             Windows the Bash shell will come from the MSYS2 project, and MSVC \
+             variables will be available.";
+        ]
+      ~doc:
+        "Use C and Unix environments suitable for OCaml within the specified \
+         program and arguments."
+      "Ml.Use"
+  in
+  let prog_t =
+    Arg.(required & pos 0 (some string) None & info ~doc:"PROGRAM" [])
+  in
+  let argv1_t =
+    Arg.(value & pos_right 0 string [] & info ~doc:"ARGUMENTS" [])
+  in
+  let t =
+    Term.ret
+      Term.(
+        const rresult_to_term_result
+        $ (const (fun (_ : [ `Initialized ]) prog args ->
+               (Dkml_runtimelib.Dkml_use.do_use ~mode:`Direct
+                  ~argv:(prog :: args)
+                  ~extract_dkml_scripts:Dkml_runtimescripts.extract_dkml_scripts)
+                 `Initialized)
+          $ Dkml_runtimelib.Dkml_cli.initialized_t $ prog_t $ argv1_t))
+  in
+  Cmd.v info t
+
 let main_t =
   Term.ret
     Term.(
-      const (fun (_ : [ `Initialized ]) -> `Help (`Auto, None)) $ initialized_t)
+      const (fun (_ : [ `Initialized ]) -> `Help (`Auto, None))
+      $ Dkml_runtimelib.Dkml_cli.initialized_t)

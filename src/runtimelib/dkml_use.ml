@@ -533,7 +533,9 @@ let set_msvc_entries cache_keys =
         | Ok (Error _ as err) -> err
         | Error _ as err -> err)
 
-let do_use ~extract_dkml_scripts () =
+let do_use ~(mode : [ `Direct | `WithDkml ]) ~argv ~extract_dkml_scripts
+    (state : [ `Initialized | `Uninitialized ]) :
+    (unit, [ `Msg of string ]) result =
   let open Bos in
   let ( let* ) = Result.bind in
   let ( >>= ) = Result.bind in
@@ -551,24 +553,27 @@ let do_use ~extract_dkml_scripts () =
   in
 
   (* Setup logging *)
-  Fmt_tty.setup_std_outputs ();
-  Logs.set_reporter (Logs_fmt.reporter ());
-  (if has_dkml_mutating_ancestor_process then
-     (* Incredibly important that we do not print unexpected output.
-        For example, [opam install ocaml-system] -> [ocamlc -vnum]
-        the [ocamlc -vnum] must print 4.14.0 (or whatever the version is).
-        It must not print any logs, even to standard error. *)
-     Logs.set_level (Some Logs.Error)
-   else
-     let dbt = OS.Env.value "DKML_BUILD_TRACE" OS.Env.string ~absent:"OFF" in
-     if
-       dbt = "ON"
-       && OS.Env.value "DKML_BUILD_TRACE_LEVEL" Dkml_environment.int_parser
-            ~absent:0
-          >= 2
-     then Logs.set_level (Some Logs.Debug)
-     else if dbt = "ON" then Logs.set_level (Some Logs.Info)
-     else Logs.set_level (Some Logs.Warning));
+  (match state with
+  | `Initialized -> ()
+  | `Uninitialized ->
+      Fmt_tty.setup_std_outputs ();
+      Logs.set_reporter (Logs_fmt.reporter ());
+      if has_dkml_mutating_ancestor_process then
+        (* Incredibly important that we do not print unexpected output.
+           For example, [opam install ocaml-system] -> [ocamlc -vnum]
+           the [ocamlc -vnum] must print 4.14.0 (or whatever the version is).
+           It must not print any logs, even to standard error. *)
+        Logs.set_level (Some Logs.Error)
+      else
+        let dbt = OS.Env.value "DKML_BUILD_TRACE" OS.Env.string ~absent:"OFF" in
+        if
+          dbt = "ON"
+          && OS.Env.value "DKML_BUILD_TRACE_LEVEL" Dkml_environment.int_parser
+               ~absent:0
+             >= 2
+        then Logs.set_level (Some Logs.Debug)
+        else if dbt = "ON" then Logs.set_level (Some Logs.Info)
+        else Logs.set_level (Some Logs.Warning));
 
   (* Do check for news before proceeding. *)
   if not has_dkml_mutating_ancestor_process then
@@ -627,8 +632,8 @@ let do_use ~extract_dkml_scripts () =
      More environment entries can be made, but this is at the end where
      there is no need to cache the environment. *)
   let* cmd =
-    Cmdline.create_and_setenv_if_necessary ~has_dkml_mutating_ancestor_process
-      ~extract_dkml_scripts ()
+    Cmdline.create_and_setenv_if_necessary ~mode ~argv
+      ~has_dkml_mutating_ancestor_process ~extract_dkml_scripts ()
   in
   let* () =
     if has_dkml_mutating_ancestor_process then Ok ()
