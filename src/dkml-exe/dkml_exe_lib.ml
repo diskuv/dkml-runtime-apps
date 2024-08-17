@@ -64,15 +64,58 @@ let localdir_opt_t =
   in
   Arg.(value & opt (some (conv_fp dir)) None & info [ "d"; "dir" ] ~doc ~docv)
 
-let version_cmd ~description =
-  let print () = print_endline Dkml_runtimelib.version in
-  let info =
-    Cmd.info ~doc:("Prints the version of " ^ description ^ ".") "version"
+let deprecated_message ~old ~new_ =
+  Printf.sprintf "`dkml %s` is deprecated. Use `dk %s` instead." old new_
+
+let show_we_are_deprecated ~old ~new_ =
+  prerr_endline (deprecated_message ~old ~new_);
+  flush stderr;
+  Unix.sleep 15
+
+let deprecated_version_cmd =
+  let old, new_ = ("version", "Ml.Version show") in
+  let print () =
+    show_we_are_deprecated ~old ~new_;
+    print_endline Dkml_runtimelib.version
   in
+  let info = Cmd.info ~doc:(deprecated_message ~old ~new_) old in
   let t = Term.(const print $ const ()) in
   Cmd.v info t
 
-let init_cmd =
+let ml_version_show_t =
+  let show () = print_endline Dkml_runtimelib.version in
+  Term.(const show $ const ())
+
+let ml_version_show_cmd ~description =
+  let info =
+    Cmd.info ~doc:("Prints the version of " ^ description ^ ".") "show"
+  in
+  Cmd.v info ml_version_show_t
+
+let ml_version_cmd ~description =
+  Cmd.group ~default:ml_version_show_t
+    (Cmd.info ~doc:"Shows the version of DkML." "Ml.Version")
+    [ ml_version_show_cmd ~description ]
+
+let switch_init_t ~setup =
+  Term.ret
+    Term.(
+      const rresult_to_term_result
+      $ (const Cmd_init.run $ initialized_t $ const setup $ localdir_opt_t
+       $ yes_t $ Cmd_init.non_system_compiler_t $ Cmd_init.system_only_t
+       $ Cmd_init.enable_imprecise_c99_float_ops_t
+       $ Cmd_init.disable_sandboxing_t))
+
+let deprecated_init_cmd =
+  let old, new_ = ("init", "Ml.Switch init") in
+  let info = Cmd.info ~doc:(deprecated_message ~old ~new_) old in
+  let setup' () =
+    show_we_are_deprecated ~old ~new_;
+    setup ()
+  in
+  Cmd.v info (switch_init_t ~setup:setup')
+
+let switch_init_cmd =
   let info =
     Cmd.info
       ~doc:
@@ -90,16 +133,12 @@ let init_cmd =
         ]
       "init"
   in
-  let t =
-    Term.ret
-      Term.(
-        const rresult_to_term_result
-        $ (const Cmd_init.run $ initialized_t $ const setup $ localdir_opt_t
-         $ yes_t $ Cmd_init.non_system_compiler_t $ Cmd_init.system_only_t
-         $ Cmd_init.enable_imprecise_c99_float_ops_t
-         $ Cmd_init.disable_sandboxing_t))
-  in
-  Cmd.v info t
+  Cmd.v info (switch_init_t ~setup)
+
+let ml_switch_cmd =
+  Cmd.group ~default:(switch_init_t ~setup)
+    (Cmd.info ~doc:"Create an opam switch." "Ml.Switch")
+    [ switch_init_cmd ]
 
 let news_show_t = Term.(const Dkml_runtimelib.Dkml_news.show $ initialized_t)
 
@@ -122,21 +161,21 @@ let news_maybe_cmd =
 
 let news_disable_cmd =
   let info =
-    Cmd.info ~doc:"Disable the periodic showing of DkML news." "disable"
+    Cmd.info ~doc:"Disable the bi-weekly showing of DkML news." "disable"
   in
   let t = Term.(const Dkml_runtimelib.Dkml_news.disable $ initialized_t) in
   Cmd.v info t
 
 let news_enable_cmd =
   let info =
-    Cmd.info ~doc:"Re-enable the periodic showing of DkML news." "enable"
+    Cmd.info ~doc:"Re-enable the bi-weekly showing of DkML news." "enable"
   in
   let t = Term.(const Dkml_runtimelib.Dkml_news.reenable $ initialized_t) in
   Cmd.v info t
 
-let news_cmd =
+let ml_news_cmd =
   Cmd.group ~default:news_show_t
-    (Cmd.info ~doc:"Show and enable the DkML news." "news")
+    (Cmd.info ~doc:"Show and enable the DkML news." "Ml.News")
     [ news_show_cmd; news_maybe_cmd; news_disable_cmd; news_enable_cmd ]
 
 let main_t =

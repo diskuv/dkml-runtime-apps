@@ -22,5 +22,9 @@ let () =
   let open Cmdliner in
   exit
     (Cmd.eval
-       (Cmd.group ~default:main_t (Cmd.info "opam dkml")
-          [ version_cmd ~description:"the DkML plugin"; init_cmd; news_cmd ]))
+       (Cmd.group ~default:main_t (Cmd.info "opam dk")
+          [
+            ml_version_cmd ~description:"the DkML command plugin";
+            ml_switch_cmd;
+            ml_news_cmd;
+          ]))
