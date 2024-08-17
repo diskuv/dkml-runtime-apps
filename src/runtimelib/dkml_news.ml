@@ -37,8 +37,7 @@ end
 let show (_ : [ `Initialized ]) =
   let uri =
     Uri.of_string
-      (Printf.sprintf "https://diskuv.com/news/motd/dkml/%s"
-         Dkml_runtimelib.version)
+      (Printf.sprintf "https://diskuv.com/news/motd/dkml/%s" Dkml_config.version)
   in
   let os =
     match Dkml_c_probe.C_abi.V3.get_os () with

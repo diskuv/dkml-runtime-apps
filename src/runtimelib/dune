@@ -5,12 +5,21 @@
    %{target}
    (progn
     (echo "let version = String.trim {|%{read:version.txt}|}\n")
-    (echo "let ocaml_opam_repository_gitref = String.trim {|%{read:ocaml_opam_repository_gitref.txt}|}\n")
+    (echo
+     "let ocaml_opam_repository_gitref = String.trim {|%{read:ocaml_opam_repository_gitref.txt}|}\n")
     (echo "let ocaml_system = String.trim {|%{system}|}\n")))))
 
 (library
  (name dkml_runtimelib)
  (public_name dkml-runtimelib)
- ; Since this can be compiled using Dune's `ocaml bootstrap.ml`, we need
- ; to list _all_ transitive dependencies (at least for Dune 2.9.3)
- (libraries dkml-c-probe astring bos fmt fpath rresult sexplib))
+ (libraries
+  dkml-c-probe
+  astring
+  bos
+  fmt
+  fpath
+  sexplib
+  ptime
+  ptime.clock.os
+  uri
+  xdg))

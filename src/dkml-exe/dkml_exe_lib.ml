@@ -101,7 +101,7 @@ let init_cmd =
   in
   Cmd.v info t
 
-let news_show_t = Term.(const Cmd_news.show $ initialized_t)
+let news_show_t = Term.(const Dkml_runtimelib.Dkml_news.show $ initialized_t)
 
 let news_show_cmd =
   let info = Cmd.info ~doc:"Show the current DkML news." "show" in
@@ -114,21 +114,24 @@ let news_maybe_cmd =
         "Show the current DkML news if the news has not been shown in a while."
       "maybe"
   in
-  let t = Term.(const Cmd_news.show_and_update_if_expired $ initialized_t) in
+  let t =
+    Term.(
+      const Dkml_runtimelib.Dkml_news.show_and_update_if_expired $ initialized_t)
+  in
   Cmd.v info t
 
 let news_disable_cmd =
   let info =
     Cmd.info ~doc:"Disable the periodic showing of DkML news." "disable"
   in
-  let t = Term.(const Cmd_news.disable $ initialized_t) in
+  let t = Term.(const Dkml_runtimelib.Dkml_news.disable $ initialized_t) in
   Cmd.v info t
 
 let news_enable_cmd =
   let info =
     Cmd.info ~doc:"Re-enable the periodic showing of DkML news." "enable"
   in
-  let t = Term.(const Cmd_news.reenable $ initialized_t) in
+  let t = Term.(const Dkml_runtimelib.Dkml_news.reenable $ initialized_t) in
   Cmd.v info t
 
 let news_cmd =

@@ -13,11 +13,7 @@
   fmt
   fmt.cli
   fmt.tty
-  cmdliner
-  ptime
-  ptime.clock.os
-  uri
-  xdg))
+  cmdliner))
 
 (executable
  (name dkml_exe)

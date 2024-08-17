@@ -556,6 +556,10 @@ let main_with_result () =
      else if dbt = "ON" then Logs.set_level (Some Logs.Info)
      else Logs.set_level (Some Logs.Warning));
 
+  (* Do check for news before proceeding. *)
+  Dkml_runtimelib.Dkml_news.show_and_update_if_expired `Initialized;
+
+  (* Continue with 'with-dkml' *)
   let* dkmlversion = Lazy.force get_dkmlversion_or_default in
   let* dkmlmode = Lazy.force get_dkmlmode_or_default in
   let* target_abi =

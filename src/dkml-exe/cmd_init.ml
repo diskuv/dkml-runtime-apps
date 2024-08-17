@@ -118,6 +118,9 @@ let create_local_switch ~system_cfg ~ocaml_home_fp ~scripts_dir_fp ~yes
 
 let run (_ : [ `Initialized ]) f_setup localdir_fp_opt yes non_system_compiler
     system_only enable_imprecise_c99_float_ops disable_sandboxing =
+  (* Do check for news before proceeding. *)
+  Dkml_runtimelib.Dkml_news.show_and_update_if_expired `Initialized;
+  (* Continue with 'init' *)
   let ( let* ) = Result.bind in
   let* (_has_dkml_mutating_ancestor_process : bool) =
     Dkml_runtimelib.Dkml_environment.mark_dkml_mutating_ancestor_process ()

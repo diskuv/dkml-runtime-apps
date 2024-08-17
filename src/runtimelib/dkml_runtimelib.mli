@@ -1,4 +1,6 @@
 module Dkml_environment = Dkml_environment
+module Dkml_news = Dkml_news
+
 module SystemConfig = Opam_context.SystemConfig
 
 module Monadic_operators : sig
