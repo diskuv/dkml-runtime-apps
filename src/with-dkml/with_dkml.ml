@@ -33,6 +33,8 @@ let () =
       `Uninitialized
   with
   | Ok _ -> ()
-  | Error msg ->
-      Fmt.pf Fmt.stderr "FATAL: %a@\n" Rresult.R.pp_msg msg;
+  | Error (`Msg msg) ->
+      prerr_endline ("FATAL: " ^ msg);
+      flush stderr;
+      flush stdout;
       exit 1
