@@ -43,17 +43,9 @@ let localdir_opt_t =
   in
   Arg.(value & opt (some (conv_fp dir)) None & info [ "d"; "dir" ] ~doc ~docv)
 
-let deprecated_message ~old ~new_ =
-  Printf.sprintf "`dkml %s` is deprecated. Use `dk %s` instead." old new_
-
-let show_we_are_deprecated ~old ~new_ =
-  prerr_endline (deprecated_message ~old ~new_);
-  prerr_endline "The program will proceed after 15 seconds ...";
-  flush stderr;
-  Unix.sleep 15
-
 let deprecated_version_cmd =
-  let old, new_ = ("version", "Ml.Version show") in
+  let open Dkml_runtimelib.Dkml_cli in
+  let old, new_ = ("dkml version", "Ml.Version show") in
   let print () =
     show_we_are_deprecated ~old ~new_;
     print_endline Dkml_runtimelib.version
@@ -87,7 +79,8 @@ let switch_init_t ~setup =
        $ Cmd_init.disable_sandboxing_t))
 
 let deprecated_init_cmd =
-  let old, new_ = ("init", "Ml.Switch init") in
+  let open Dkml_runtimelib.Dkml_cli in
+  let old, new_ = ("dkml init", "Ml.Switch init") in
   let info = Cmd.info ~doc:(deprecated_message ~old ~new_) old in
   let setup' () =
     show_we_are_deprecated ~old ~new_;
