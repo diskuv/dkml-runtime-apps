@@ -34,12 +34,12 @@ module DkNet_Std__Browser = struct
     | `Linux | _ -> open_url_linux url
 end
 
+let uri =
+  (* motd = message of the day *)
+  Uri.of_string
+    (Printf.sprintf "https://diskuv.com/news/motd/%s" Dkml_config.version)
+
 let show (_ : [ `Initialized ]) =
-  let uri =
-    (* motd = message of the day *)
-    Uri.of_string
-      (Printf.sprintf "https://diskuv.com/news/motd/%s" Dkml_config.version)
-  in
   let os =
     match Dkml_c_probe.C_abi.V3.get_os () with
     | Error _ -> `Linux

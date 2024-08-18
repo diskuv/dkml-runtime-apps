@@ -227,12 +227,8 @@ let set_enduser_env abs_cmd_p =
 let blurb () =
   let ( let* ) = Result.bind in
   let* version = Lazy.force Dkml_context.get_dkmlversion_or_default in
-  Format.eprintf
-    {|DkML %-49s https://diskuv.com/dkmlbook/
-DkSDK%-49s https://diskuv.com/pricing
-@.|}
-    (version ^ ": Open source. Full-stack OCaml.")
-    ": 30 day risk free. C/C++/Java/Swift and OCaml.";
+  Format.eprintf {|dk %s. New packages, fixes and more: %a@.|} version
+    Uri.pp_hum Dkml_news.uri;
   Ok ()
 
 let setup_bytecode_env ~abs_cmd_p =
