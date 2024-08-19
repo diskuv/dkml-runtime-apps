@@ -72,7 +72,7 @@ module SystemConfig = struct
     dkml_home_fp : Fpath.t;
     scripts_dir_fp : Fpath.t;
     env_exe_wrapper : string list;
-    target_abi : string;
+    host_abi : string;
     msys2 : msys2_t;
     opam_home_fp : Fpath.t;
     ocaml_compiler_version : string;
@@ -122,7 +122,7 @@ module SystemConfig = struct
     (* Find env *)
     let* env_exe_wrapper = Dkml_environment.env_exe_wrapper () in
     (* Find target ABI *)
-    let* target_abi =
+    let* host_abi =
       Rresult.R.error_to_msg ~pp_error:Fmt.string
         (Dkml_c_probe.C_abi.V2.get_abi_name ())
     in
@@ -130,9 +130,7 @@ module SystemConfig = struct
     let* msys2 =
       if Sys.win32 then
         let* msys2_dir = Lazy.force Dkml_context.get_msys2_dir in
-        let* msys2_config =
-          Dkml_environment.get_msys2_environment ~target_abi
-        in
+        let* msys2_config = Dkml_environment.get_msys2_environment ~host_abi in
         Ok (Msys2_on_windows (msys2_dir, msys2_config))
       else Ok No_msys2_on_unix
     in
@@ -156,7 +154,7 @@ module SystemConfig = struct
         dkml_home_fp;
         scripts_dir_fp;
         env_exe_wrapper;
-        target_abi;
+        host_abi;
         msys2;
         opam_home_fp;
         ocaml_compiler_version;

@@ -87,7 +87,7 @@ let create_local_switch ~system_cfg ~ocaml_home_fp ~scripts_dir_fp ~yes
           "/bin/sh";
           Fpath.to_string create_switch_fp;
           "-p";
-          system_cfg.target_abi;
+          system_cfg.host_abi;
           "-t";
           Fpath.to_string localdir_fp;
           "-o";
@@ -96,6 +96,9 @@ let create_local_switch ~system_cfg ~ocaml_home_fp ~scripts_dir_fp ~yes
           Fpath.to_string opamroot_dir_fp;
           "-m";
           "conf-withdkml";
+          (* Ex. dkml-host-abi-windows_x86_64 *)
+          "-m";
+          "dkml-host-abi-" ^ system_cfg.host_abi;
         ]
       @ (if non_system_compiler then
            (* Without [-v OCAMLHOME] the [-b BUILDTYPE] is required *)

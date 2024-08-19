@@ -582,20 +582,26 @@ let do_use ~(mode : [ `Direct | `WithDkml ]) ~argv ~extract_dkml_scripts
   (* Continue with 'with-dkml' *)
   let* dkmlversion = Lazy.force Dkml_context.get_dkmlversion_or_default in
   let* dkmlmode = Lazy.force Dkml_context.get_dkmlmode_or_default in
-  let* target_abi =
+  let* host_abi =
     Rresult.R.error_to_msg ~pp_error:Fmt.string
       (Dkml_c_probe.C_abi.V2.get_abi_name ())
   in
   let cache_keys = [ dkmlversion ] in
-  (* FIRST, set DKML_TARGET_ABI, which may be overridden by DKML_TARGET_PLATFORM_OVERRIDE *)
-  let target_abi =
-    OS.Env.opt_var "DKML_TARGET_PLATFORM_OVERRIDE" ~absent:target_abi
+  (* FIRST, set DKML_TARGET_ABI, which may be overridden by DKML_TARGET_PLATFORM_OVERRIDE.
+     TODO: "target" is slightly confusing. DKML_TARGET_ABI is the ABI detected
+     through probing the C compiler ... that is, it is the target ABI of the C compiler.
+     However, we might have a findlib cross-compiler toolchain (dune -x android_xxx) which is also
+     a target of a different C compiler.
+     
+     DKML_TARGET_ABI is the target C compiler of the native findlib toolchain. *)
+  let host_abi =
+    OS.Env.opt_var "DKML_TARGET_PLATFORM_OVERRIDE" ~absent:host_abi
   in
   let* () =
     if has_dkml_mutating_ancestor_process then Ok ()
-    else OS.Env.set_var "DKML_TARGET_ABI" (Some target_abi)
+    else OS.Env.set_var "DKML_TARGET_ABI" (Some host_abi)
   in
-  let cache_keys = target_abi :: cache_keys in
+  let cache_keys = host_abi :: cache_keys in
   (* SECOND, set MSYS2 environment variables.
      - This is needed before is_msys2_msys_build_machine() is called from crossplatform-functions.sh
        in add_microsoft_visual_studio_entries.
@@ -607,7 +613,7 @@ let do_use ~(mode : [ `Direct | `WithDkml ]) ~argv ~extract_dkml_scripts
     match dkmlmode with
     | Nativecode ->
         Dkml_environment.set_msys2_entries ~has_dkml_mutating_ancestor_process
-          ~target_abi
+          ~host_abi
     | Bytecode -> Ok ()
   in
   let* () =

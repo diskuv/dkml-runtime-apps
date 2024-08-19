@@ -67,8 +67,8 @@ type msys2_config = {
   mingw_package_prefix : string;
 }
 
-(** [get_msys2_environment target_abi] gets the DkML environment for the DkML
-    ABI [target_abi].
+(** [get_msys2_environment host_abi] gets the DkML environment for the DkML
+    ABI [host_abi].
     
     See {{:https://github.com/msys2/MSYS2-packages/blob/1ff9c79a6b6b71492c4824f9888a15314b85f5fa/filesystem/msystem}MSYS2-packages/filesystem/msystem}
     and {{:https://www.msys2.org/docs/environments/}MSYS2 Environments} for the magic values.
@@ -87,7 +87,7 @@ type msys2_config = {
 
     Confer: {{:https://issuemode.com/issues/msys2/MINGW-packages/18837088}https://issuemode.com/issues/msys2/MINGW-packages/18837088}
 *)
-let get_msys2_environment ~target_abi =
+let get_msys2_environment ~host_abi =
   let cfg c0 c1 c2 c3 c4 c5 c6 c7 =
     Ok
       {
@@ -105,7 +105,7 @@ let get_msys2_environment ~target_abi =
      [dkml-runtime-apps/src/runtimelib/dkml_environment.ml]
      [dkml/pkg/bump/CMakeLists.txt]
   *)
-  match target_abi with
+  match host_abi with
   | "windows_x86" ->
       cfg "host-arch-x86_32" "MINGW32" "i686" "i686-w64-mingw32" "mingw32"
         "i686-w64-mingw32" "mingw32" "mingw-w64-i686"
@@ -119,13 +119,13 @@ let get_msys2_environment ~target_abi =
   | _ ->
       Error
         (`Msg
-          ("The target platform name '" ^ target_abi
+          ("The target platform name '" ^ host_abi
          ^ "' is not a supported Windows platform"))
 
 (** Set the MSYSTEM environment variable to MSYS and place MSYS2 binaries at the front of the PATH.
     Any existing MSYS2 binaries in the PATH will be removed.
   *)
-let set_msys2_entries ~has_dkml_mutating_ancestor_process ~target_abi =
+let set_msys2_entries ~has_dkml_mutating_ancestor_process ~host_abi =
   Lazy.force get_msys2_dir_opt >>= function
   | None -> R.ok ()
   | Some msys2_dir ->
@@ -146,7 +146,7 @@ let set_msys2_entries ~has_dkml_mutating_ancestor_process ~target_abi =
           So we use MINGW32.
           Confer: https://issuemode.com/issues/msys2/MINGW-packages/18837088
       *)
-      get_msys2_environment ~target_abi
+      get_msys2_environment ~host_abi
       >>= fun {
                 opam_host_arch = _;
                 msystem;

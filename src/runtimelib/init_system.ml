@@ -27,7 +27,7 @@ let create_playground_switch ~system_cfg ~ocaml_home_fp ~opamroot_dir_fp =
           "/bin/sh";
           Fpath.to_string create_switch_fp;
           "-p";
-          system_cfg.target_abi;
+          system_cfg.host_abi;
           "-w";
           "-n";
           "playground";
@@ -69,7 +69,7 @@ let create_opam_root ?disable_sandboxing ?reinit ~opamroot_dir_fp ~ocaml_home_fp
           "/bin/sh";
           Fpath.to_string init_opam_root_fp;
           "-p";
-          system_cfg.target_abi;
+          system_cfg.host_abi;
           "-o";
           Fpath.to_string system_cfg.opam_home_fp;
           "-r";
@@ -77,7 +77,8 @@ let create_opam_root ?disable_sandboxing ?reinit ~opamroot_dir_fp ~ocaml_home_fp
           "-v";
           Fpath.to_string ocaml_home_fp;
           "-c";
-          "git+https://github.com/ocaml/opam-repository.git#" ^ Dkml_config.ocaml_opam_repository_gitref;
+          "git+https://github.com/ocaml/opam-repository.git#"
+          ^ Dkml_config.ocaml_opam_repository_gitref;
         ]
       @ disable_sandboxing_args @ reinit_args)
   in
@@ -121,7 +122,7 @@ let create_ocaml_home_with_compiler ~system_cfg ~enable_imprecise_c99_float_ops
           (* GIT_TAG_OR_COMMIT *)
           ocaml_git_commit;
           (* DKMLHOSTABI *)
-          system_cfg.target_abi;
+          system_cfg.host_abi;
           (* INSTALLDIR *)
           Fpath.to_string dkml_home_fp;
         ]
