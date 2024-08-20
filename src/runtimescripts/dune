@@ -80,19 +80,20 @@
           (with-accepted-exit-codes (or 0 1) (system "mkdir Machine"))))))))))))
    (no-infer
     (progn
-     (copy %{td}      dkmldir/vendor/drc/template.dkmlroot)
-     (copy %{wd}      dkmldir/vendor/drc/unix/_within_dev.sh)
-     (copy %{ct}      dkmldir/vendor/drc/unix/_common_tool.sh)
-     (copy %{cf}      dkmldir/vendor/drc/unix/crossplatform-functions.sh)
-     (copy %{cos}     dkmldir/vendor/drd/src/unix/create-opam-switch.sh)
-     (copy %{poe}     dkmldir/vendor/drd/src/unix/private/platform-opam-exec.sh)
-     (copy %{ior}     dkmldir/vendor/drd/src/unix/private/init-opam-root.sh)
-     (copy %{wdh}     dkmldir/vendor/drd/src/windows/DeploymentHash/DeploymentHash.psm1)
-     (copy %{wmc}     dkmldir/vendor/drd/src/windows/Machine/Machine.psm1)
-     (copy %{ioc}     dkmldir/install-ocaml-compiler.sh)
-     (copy %{ros}     dkmldir/restore-ocaml-shims.sh)
-     (copy %{fvb}     dkmldir/cache-vsstudio.bat)
-     (copy %{fvp}     dkmldir/cache-vsstudio.ps1)))
+     ; always use LF endings except for PowerShell .ps* files which may have UTF-16 encodings set by .gitattributes (and dos2unix.exe does not work with UTF-16)
+     (run %{exe:../runtimelib/dos2unix.exe} %{td}      dkmldir/vendor/drc/template.dkmlroot)
+     (run %{exe:../runtimelib/dos2unix.exe} %{wd}      dkmldir/vendor/drc/unix/_within_dev.sh)
+     (run %{exe:../runtimelib/dos2unix.exe} %{ct}      dkmldir/vendor/drc/unix/_common_tool.sh)
+     (run %{exe:../runtimelib/dos2unix.exe} %{cf}      dkmldir/vendor/drc/unix/crossplatform-functions.sh)
+     (run %{exe:../runtimelib/dos2unix.exe} %{cos}     dkmldir/vendor/drd/src/unix/create-opam-switch.sh)
+     (run %{exe:../runtimelib/dos2unix.exe} %{poe}     dkmldir/vendor/drd/src/unix/private/platform-opam-exec.sh)
+     (run %{exe:../runtimelib/dos2unix.exe} %{ior}     dkmldir/vendor/drd/src/unix/private/init-opam-root.sh)
+     (copy                                  %{wdh}     dkmldir/vendor/drd/src/windows/DeploymentHash/DeploymentHash.psm1)
+     (copy                                  %{wmc}     dkmldir/vendor/drd/src/windows/Machine/Machine.psm1)
+     (run %{exe:../runtimelib/dos2unix.exe} %{ioc}     dkmldir/install-ocaml-compiler.sh)
+     (run %{exe:../runtimelib/dos2unix.exe} %{ros}     dkmldir/restore-ocaml-shims.sh)
+     (run %{exe:../runtimelib/dos2unix.exe} %{fvb}     dkmldir/cache-vsstudio.bat)
+     (copy                                  %{fvp}     dkmldir/cache-vsstudio.ps1)))
    (run
     %{bin:ocaml-crunch}
     "--mode=plain"
