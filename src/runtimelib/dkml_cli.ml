@@ -26,6 +26,6 @@ let deprecated_message ~old ~new_ =
 
 let show_we_are_deprecated ~pause ~old ~new_ =
   prerr_endline ("WARNING: " ^ deprecated_message ~old ~new_);
-  prerr_endline "The program will continue in 15 seconds ...";
+  if pause then prerr_endline "The program will continue in 15 seconds ...";
   flush stderr;
   if pause then Unix.sleep 15
