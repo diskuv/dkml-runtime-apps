@@ -18,6 +18,7 @@
  (depends
   (ocaml        (>= 4.12.1))
   (bos          (>= 0.2.1))
+  (crunch       (>= 3.3.1))
   (digestif     (>= 1.1.4))
   (dkml-c-probe (>= 3.0.0))
   (sexplib      (>= 0.14.0))
