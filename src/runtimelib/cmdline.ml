@@ -390,11 +390,11 @@ let create_and_setenv_if_necessary ~(mode : [ `Direct | `WithDkml ]) ~argv
           ( "with-dkml " ^ Filename.quote arg1,
             "Ml.Use -- " ^ Filename.quote arg1 )
         in
-        Dkml_cli.show_we_are_deprecated ~old ~new_;
+        Dkml_cli.show_we_are_deprecated ~pause:false ~old ~new_;
         Ok (env_exe_wrapper @ (arg1 :: argn))
     | `WithDkml, cmd :: [] when is_with_dkml_exe cmd ->
         let old, new_ = ("with-dkml", "Ml.Use -- env") in
-        Dkml_cli.show_we_are_deprecated ~old ~new_;
+        Dkml_cli.show_we_are_deprecated ~pause:true ~old ~new_;
         Ok env_exe_wrapper
     (* CMDLINE_B FORM *)
     | `WithDkml, [ cmd; "--version" ] when is_opam_exe cmd ->

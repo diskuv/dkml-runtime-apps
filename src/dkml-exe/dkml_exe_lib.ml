@@ -47,7 +47,7 @@ let deprecated_version_cmd =
   let open Dkml_runtimelib.Dkml_cli in
   let old, new_ = ("dkml version", "Ml.Version show") in
   let print () =
-    show_we_are_deprecated ~old ~new_;
+    show_we_are_deprecated ~pause:true ~old ~new_;
     print_endline Dkml_runtimelib.version
   in
   let info = Cmd.info ~doc:(deprecated_message ~old ~new_) "version" in
@@ -83,7 +83,7 @@ let deprecated_init_cmd =
   let old, new_ = ("dkml init", "Ml.Switch init") in
   let info = Cmd.info ~doc:(deprecated_message ~old ~new_) "init" in
   let setup' () =
-    show_we_are_deprecated ~old ~new_;
+    show_we_are_deprecated ~pause:true ~old ~new_;
     setup ()
   in
   Cmd.v info (switch_init_t ~setup:setup')

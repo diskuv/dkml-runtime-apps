@@ -24,8 +24,8 @@ let initialized_t =
 let deprecated_message ~old ~new_ =
   Printf.sprintf "`%s` is deprecated. Use `dk %s` instead." old new_
 
-let show_we_are_deprecated ~old ~new_ =
+let show_we_are_deprecated ~pause ~old ~new_ =
   prerr_endline ("WARNING: " ^ deprecated_message ~old ~new_);
   prerr_endline "The program will continue in 15 seconds ...";
   flush stderr;
-  Unix.sleep 15
+  if pause then Unix.sleep 15
