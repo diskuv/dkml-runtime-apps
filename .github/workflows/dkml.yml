@@ -62,14 +62,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Promote version on Windows host
-        if: startsWith(matrix.dkml_host_abi, 'windows_')
-        run: echo "DISKUV_OPAM_REPOSITORY=$(Get-Content ${env:GITHUB_WORKSPACE}/src/runtimelib/version.txt)" >> $env:GITHUB_ENV
-
-      - name: Promote version on Unix host
-        if: "!startsWith(matrix.dkml_host_abi, 'windows_')"
-        run: echo "DISKUV_OPAM_REPOSITORY=$(cat src/runtimelib/version.txt)" >> $GITHUB_ENV
-
       - name: Cache DkML compilers code
         uses: actions/cache@v3
         id: cache-dkml-compilers
