@@ -60,10 +60,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Cache DkML compilers code
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: cache-dkml-compilers
         with:
           path: .ci/dkml-compilers
@@ -127,7 +127,7 @@ jobs:
 
       # Upload artifact
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.dkml_host_abi }}
           path: dist/
@@ -139,15 +139,15 @@ jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Needed for softprops/action-gh-release@v1
+      contents: write # Needed for softprops/action-gh-release@v2
     # Wait until `build` complete
     needs:
       - build
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           path: dist
 
@@ -155,7 +155,7 @@ jobs:
         run: ci/prepare-release.sh
 
       - name: Release (only when Git tag pushed)
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
