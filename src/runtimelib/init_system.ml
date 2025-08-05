@@ -153,17 +153,17 @@ let get_opamroot_status () =
   let* config_exists = OS.File.exists config in
   if config_exists then
     let* dkml_version = Lazy.force Dkml_context.get_dkmlversion_or_default in
-    (* COMPLETE: The diskuv-<VERSION> repository must exist *)
-    let* diskuv_repo =
+    (* COMPLETE: The dkml-<VERSION> repository must exist *)
+    let* dkml_repo =
       OS.Dir.exists
         Fpath.(
-          opamroot_dir_fp / "repo" / Printf.sprintf "diskuv-%s" dkml_version)
+          opamroot_dir_fp / "repo" / Printf.sprintf "dkml-%s" dkml_version)
     in
-    let* diskuv_repo_targz =
+    let* dkml_repo_targz =
       OS.File.exists
         Fpath.(
           opamroot_dir_fp / "repo"
-          / Printf.sprintf "diskuv-%s.tar.gz" dkml_version)
+          / Printf.sprintf "dkml-%s.tar.gz" dkml_version)
     in
     (* Does <opamroot>/config have:
           wrap-build-commands:
@@ -179,7 +179,7 @@ let get_opamroot_status () =
       |> Option.is_some
     in
     let state =
-      if diskuv_repo || diskuv_repo_targz then
+      if dkml_repo || dkml_repo_targz then
         if config_contains_sandbox then Opamroot_complete_with_sandbox
         else Opamroot_complete_without_sandbox
       else Opamroot_no_repository
